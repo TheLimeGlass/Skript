@@ -88,7 +88,6 @@ public class ExprFacing extends SimplePropertyExpression<Object, Direction> {
 		return Direction.class;
 	}
 	
-	@SuppressWarnings("unchecked")
 	@Override
 	@Nullable
 	public Class<?>[] acceptChange(final ChangeMode mode) {
