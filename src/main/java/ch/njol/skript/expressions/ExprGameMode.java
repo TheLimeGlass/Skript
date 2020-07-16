@@ -52,7 +52,7 @@ import ch.njol.util.coll.CollectionUtils;
 public class ExprGameMode extends PropertyExpression<Player, GameMode> {
 	
 	static {
-		Skript.registerExpression(ExprGameMode.class, GameMode.class, ExpressionType.PROPERTY, "[the] game[ ]mode of %players%", "%players%'[s] game[ ]mode");
+		Skript.registerExpression(ExprGameMode.class, GameMode.class, ExpressionType.PROPERTY, "[the] game[ ]mode [of %players%]", "[%players%'[s]] game[ ]mode");
 	}
 	
 	@SuppressWarnings({"unchecked", "null"})
@@ -85,7 +85,6 @@ public class ExprGameMode extends PropertyExpression<Player, GameMode> {
 		return "the gamemode of " + getExpr().toString(e, debug);
 	}
 	
-	@SuppressWarnings("unchecked")
 	@Override
 	@Nullable
 	public Class<?>[] acceptChange(final ChangeMode mode) {
