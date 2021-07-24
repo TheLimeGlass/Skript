@@ -55,7 +55,7 @@ import ch.njol.util.Kleenean;
 public class CondDamageCause extends Condition {
 	
 	static {
-		Skript.registerCondition(CondDamageCause.class, "[the] damage (was|is|has)(0¦|1¦n('|o)t) [been] (caused|done|made) by %damagecause%");
+		Skript.registerCondition(CondDamageCause.class, "[the] damage (was|is|has)(0¦|1¦n('|o)t) [been] (caused|done|made) by %damagecauses%");
 	}
 	
 	@SuppressWarnings("null")
