@@ -282,8 +282,8 @@ public abstract class Classes {
 	 * <p>
 	 * This method can be called even while Skript is loading.
 	 * 
-	 * @param c The exact class to get the class info for
-	 * @return The class info for the given class of null if no info was found.
+	 * @param c The exact class to get the class info for.
+	 * @return The class info for the given class or null if no info was found.
 	 */
 	@SuppressWarnings("unchecked")
 	@Nullable
@@ -292,7 +292,7 @@ public abstract class Classes {
 	}
 	
 	/**
-	 * Gets the class info of the given class or its closest registered superclass. This method will never return null unless <tt>c</tt> is null.
+	 * Gets the class info of the given class or it's closest registered superclass. This method will never return null unless <tt>c</tt> is null.
 	 * 
 	 * @param c
 	 * @return The closest superclass's info
