@@ -191,7 +191,7 @@ public class GriefPreventionHook extends RegionsPlugin<GriefPrevention> {
 		
 		@Override
 		public String toString() {
-			return "Claim #" + claim.getID();
+			return claim.getID() + "";
 		}
 		
 		@SuppressWarnings("null")
