@@ -268,20 +268,14 @@ public abstract class Commands {
 			command = "" + command.substring(SkriptConfig.effectCommandToken.value().length()).trim();
 			final RetainingLogHandler log = SkriptLogger.startRetainingLog();
 			try {
+				// Call the event on the Bukkit API for addon developers.
+				EffectCommandEvent effectCommand = new EffectCommandEvent(sender, command);
+				Bukkit.getPluginManager().callEvent(effectCommand);
+				command = effectCommand.getCommand();
 				ParserInstance parserInstance = ParserInstance.get();
 				parserInstance.setCurrentEvent("effect command", EffectCommandEvent.class);
 				Effect effect = Effect.parse(command, null);
 				parserInstance.deleteCurrentEvent();
-
-				// Call the event on the Bukkit API for addon developers.
-				EffectCommandEvent effectCommand = new EffectCommandEvent(sender, command);
-				Bukkit.getPluginManager().callEvent(effectCommand);
-				// Re-parse the effect as it's been changed.
-				if (!effectCommand.getCommand().equals(command)) {
-					parserInstance.setCurrentEvent("effect command", EffectCommandEvent.class);
-					effect = Effect.parse(effectCommand.getCommand(), null);
-					parserInstance.deleteCurrentEvent();
-				}
 				
 				if (effect != null) {
 					log.clear(); // ignore warnings and stuff
@@ -291,6 +285,8 @@ public abstract class Commands {
 						if (SkriptConfig.logPlayerCommands.value() && !(sender instanceof ConsoleCommandSender))
 							Skript.info(sender.getName() + " issued effect command: " + command);
 						TriggerItem.walk(effect, effectCommand);
+					} else {
+						sender.sendMessage(ChatColor.RED + "your effect command '" + ChatColor.stripColor(command) + "' was cancelled.");
 					}
 				} else {
 					if (sender == Bukkit.getConsoleSender()) // log as SEVERE instead of INFO like printErrors below
