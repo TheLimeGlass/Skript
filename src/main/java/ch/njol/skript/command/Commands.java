@@ -280,9 +280,9 @@ public abstract class Commands {
 					sender.sendMessage(ChatColor.GRAY + "executing '" + ChatColor.stripColor(command) + "'");
 					if (SkriptConfig.logPlayerCommands.value() && !(sender instanceof ConsoleCommandSender))
 						Skript.info(sender.getName() + " issued effect command: " + command);
-					EffectCommandEvent effectcommand = new EffectCommandEvent(sender, command);
+					EffectCommandEvent effectCommand = new EffectCommandEvent(sender, command);
 					TriggerItem.walk(e, effectCommand);
-					Bukkit.getPluginManager().callEvent(effectcommand);
+					Bukkit.getPluginManager().callEvent(effectCommand);
 				} else {
 					if (sender == Bukkit.getConsoleSender()) // log as SEVERE instead of INFO like printErrors below
 						SkriptLogger.LOGGER.severe("Error in: " + ChatColor.stripColor(command));
