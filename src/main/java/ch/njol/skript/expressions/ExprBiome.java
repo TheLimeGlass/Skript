@@ -21,8 +21,6 @@ package ch.njol.skript.expressions;
 import org.bukkit.Location;
 import org.bukkit.block.Biome;
 import org.bukkit.event.Event;
-import org.bukkit.event.player.PlayerTeleportEvent;
-import org.bukkit.event.world.SpawnChangeEvent;
 import org.eclipse.jdt.annotation.Nullable;
 
 import ch.njol.skript.Skript;
@@ -31,14 +29,12 @@ import ch.njol.skript.doc.Description;
 import ch.njol.skript.doc.Examples;
 import ch.njol.skript.doc.Name;
 import ch.njol.skript.doc.Since;
-import ch.njol.skript.effects.Delay;
 import ch.njol.skript.expressions.base.PropertyExpression;
 import ch.njol.skript.lang.Expression;
 import ch.njol.skript.lang.ExpressionType;
 import ch.njol.skript.lang.SkriptParser.ParseResult;
 import ch.njol.skript.util.Direction;
 import ch.njol.util.Kleenean;
-import ch.njol.util.coll.CollectionUtils;
 
 /**
  * @author Peter Güttinger
@@ -68,12 +64,6 @@ public class ExprBiome extends PropertyExpression<Location, Biome> {
 
 	@Override
 	protected Biome[] get(Event event, Location[] source) {
-		if (getTime() == -1 && !Delay.isDelayed(event) && event instanceof SpawnChangeEvent)
-			return CollectionUtils.array(((SpawnChangeEvent) event).getPreviousLocation().getBlock().getBiome());
-		if (event instanceof PlayerTeleportEvent && !Delay.isDelayed(event)) {
-			Location location = getTime() == -1 ? ((PlayerTeleportEvent) event).getFrom() : ((PlayerTeleportEvent) event).getTo();
-			return CollectionUtils.array(location.getBlock().getBiome());
-		}
 		return get(source, location -> location.getBlock().getBiome());
 	}
 
@@ -110,7 +100,7 @@ public class ExprBiome extends PropertyExpression<Location, Biome> {
 	@SuppressWarnings("unchecked")
 	@Override
 	public boolean setTime(int time) {
-		super.setTime(time, getExpr(), SpawnChangeEvent.class, PlayerTeleportEvent.class);
+		super.setTime(time, getExpr());
 		return true;
 	}
 
