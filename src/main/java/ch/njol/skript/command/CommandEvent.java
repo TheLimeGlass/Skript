@@ -32,7 +32,7 @@ public class CommandEvent extends Event {
 	String command;
 
 	@Nullable
-	protected final String[] args;
+	final String[] args;
 
 	public CommandEvent(CommandSender sender, String command, @Nullable String[] args) {
 		this.sender = sender;
