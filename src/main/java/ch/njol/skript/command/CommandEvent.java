@@ -28,11 +28,11 @@ import org.eclipse.jdt.annotation.Nullable;
  */
 public class CommandEvent extends Event {
 
-	final CommandSender sender;
+	private final CommandSender sender;
 	String command;
 
 	@Nullable
-	final String[] args;
+	private final String[] args;
 
 	public CommandEvent(CommandSender sender, String command, @Nullable String[] args) {
 		this.sender = sender;
