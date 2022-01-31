@@ -55,7 +55,7 @@ Test scripts have all normal Skript syntaxes available. In addition to that,
 some syntaxes for test development are available.
 
 * Minecraft version condition <code>running [(1¦below)] minecraft %string%</code>
-  * Example: <code>when running minecraft "1.15":</code>
+  * Example: <code>if running minecraft "1.15":</code>
 * Event test cases: <code>test %string% [when <.+>]</code>
   * Example: <code>test "test name" when running minecraft "1.18.1":</code>
   * Contents of tests are not parsed when conditions are not met.
