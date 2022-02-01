@@ -68,6 +68,11 @@ import org.bukkit.Bukkit;
 import org.bukkit.event.Event;
 import org.eclipse.jdt.annotation.Nullable;
 
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.HashMultiset;
+import com.google.common.collect.Multimap;
+import com.google.common.collect.Multiset;
+
 import java.io.File;
 import java.io.FileFilter;
 import java.io.FileInputStream;
@@ -127,6 +132,7 @@ public class ScriptLoader {
 	 * </ul>
 	 */
 	public static class ScriptInfo {
+		
 		public int files, triggers, commands, functions;
 		
 		/**
@@ -190,6 +196,8 @@ public class ScriptLoader {
 	 * to be re-sent to clients on MC 1.13+.
 	 */
 	private static final Map<String, Set<String>> commandNames = new HashMap<>();
+
+	private static final Multimap<String, String> defaultVariables = HashMultimap.create();
 	
 	/**
 	 * @see ParserInstance#get()
@@ -550,7 +558,6 @@ public class ScriptLoader {
 				} else {
 					Skript.debug("Commands unchanged, not syncing them to clients");
 				}
-				
 				return scriptInfo;
 			});
 	}
@@ -662,6 +669,7 @@ public class ScriptLoader {
 								Skript.error("Invalid use of percent signs in variable name");
 								continue;
 							}
+							defaultVariables.put(config.getFileName(), name);
 							if (Variables.getVariable(name, null, false) != null)
 								continue;
 							Object o;
@@ -1019,6 +1027,9 @@ public class ScriptLoader {
 	private static ScriptInfo unloadScript_(File script) {
 		if (loadedFiles.contains(script)) {
 			ScriptInfo info = SkriptEventHandler.removeTriggers(script); // Remove triggers
+			for (String variable : defaultVariables.get(script.getName()))
+				Variables.setVariable(variable, null, null, false);
+			defaultVariables.removeAll(script.getName());
 			synchronized (loadedScripts) { // Update global script info
 				loadedScripts.subtract(info);
 			}
