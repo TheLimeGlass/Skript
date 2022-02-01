@@ -18,11 +18,19 @@
  */
 package ch.njol.skript.lang;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Iterator;
+import java.util.List;
+
+import org.bukkit.ChatColor;
+import org.bukkit.event.Event;
+import org.eclipse.jdt.annotation.Nullable;
+
 import ch.njol.skript.Skript;
 import ch.njol.skript.classes.Changer.ChangeMode;
 import ch.njol.skript.expressions.ExprColoured;
 import ch.njol.skript.lang.SkriptParser.ParseResult;
-import ch.njol.skript.lang.parser.ParserInstance;
 import ch.njol.skript.lang.util.SimpleExpression;
 import ch.njol.skript.log.BlockingLogHandler;
 import ch.njol.skript.log.RetainingLogHandler;
@@ -34,17 +42,10 @@ import ch.njol.skript.util.chat.ChatMessages;
 import ch.njol.skript.util.chat.MessageComponent;
 import ch.njol.util.Checker;
 import ch.njol.util.Kleenean;
+import ch.njol.util.Pair;
 import ch.njol.util.StringUtils;
 import ch.njol.util.coll.CollectionUtils;
 import ch.njol.util.coll.iterator.SingleItemIterator;
-import org.bukkit.ChatColor;
-import org.bukkit.event.Event;
-import org.eclipse.jdt.annotation.Nullable;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.List;
 
 /**
  * Represents a string that may contain expressions, and is thus "variable".
@@ -532,24 +533,35 @@ public class VariableString implements Expression<String> {
 		return b.toString();
 	}
 	
-	public String getDefaultVariableName() {
+	/**
+	 * Builds a pair of the variable string with the default variable type hints.
+	 * <p>
+	 * The first String in the pair is with the classinfo code name.
+	 * The second String in the pair is the formatted variable string but the code names are <object>.
+	 * <p>
+	 * @return Pair<String, String>
+	 */
+	public Pair<String, String> getDefaultVariableName(Event event) {
 		if (isSimple) {
 			assert simple != null;
-			return simple;
+			return new Pair<>(simple, "object");
 		}
 		Object[] string = this.string;
 		assert string != null;
-		StringBuilder b = new StringBuilder();
-		for (Object o : string) {
-			if (o instanceof Expression) {
-				b.append("<")
-					.append(Classes.getSuperClassInfo(((Expression<?>) o).getReturnType()).getCodeName())
+		StringBuilder builder = new StringBuilder();
+		StringBuilder objectBuilder = new StringBuilder();
+		for (Object object : string) {
+			if (object instanceof Expression) {
+				objectBuilder.append("<object>");
+				builder.append("<")
+					.append(Classes.getSuperClassInfo(((Expression<?>) object).getReturnType(event)).getCodeName())
 					.append(">");
 			} else {
-				b.append(o);
+				objectBuilder.append(object);
+				builder.append(object);
 			}
 		}
-		return b.toString();
+		return new Pair<>(builder.toString(), objectBuilder.toString());
 	}
 	
 	public boolean isSimple() {

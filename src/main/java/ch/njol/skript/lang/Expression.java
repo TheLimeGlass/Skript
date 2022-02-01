@@ -158,7 +158,27 @@ public interface Expression<T> extends SyntaxElement, Debuggable {
 	 * @return A supertype of any objects returned by {@link #getSingle(Event)} and the component type of any arrays returned by {@link #getArray(Event)}
 	 */
 	public abstract Class<? extends T> getReturnType();
-	
+
+	/**
+	 * Attempts to grab the return type with an event.
+	 * <p>
+	 * This method can used to get the runtime value for Command Arguments, UnparsedLiterals, and Expressions in Default Variables.
+	 * At some parse points, Skript only knows Object.class as the return type. This method helps if an event is known.
+	 * <p>
+	 * If {@link #getAnd()} returns false, this method resorts to {@link #getReturnType()}
+	 *
+	 * @param event The event
+	 * @return A supertype of the first component returned by {@link #getArray(Event)}
+	 */
+	@SuppressWarnings("unchecked")
+	default public Class<? extends T> getReturnType(Event event) {
+		if (!getAnd())
+			return getReturnType();
+		T[] values = getArray(event);
+		assert values.length >= 1;
+		return (Class<? extends T>) values[0].getClass();
+	}
+
 	/**
 	 * Returns true if this expression returns all possible values, false if it only returns some of them.
 	 * <p>

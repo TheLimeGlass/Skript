@@ -293,14 +293,21 @@ public class Variable<T> implements Expression<T> {
 	 * Gets the value of this variable as stored in the variables map.
 	 */
 	@Nullable
-	public Object getRaw(Event e) {
-		String n = name.toString(e);
-		if (n.endsWith(Variable.SEPARATOR + "*") != list) // prevents e.g. {%expr%} where "%expr%" ends with "::*" from returning a Map
+	public Object getRaw(Event event) {
+		String name = this.name.toString(event);
+		if (name.endsWith(Variable.SEPARATOR + "*") != list) // prevents e.g. {%expr%} where "%expr%" ends with "::*" from returning a Map
 			return null;
-		Object val = !list ? convertIfOldPlayer(n, e, Variables.getVariable(n, e, local)) : Variables.getVariable(n, e, local);
-		if (val == null)
-			return Variables.getVariable((local ? LOCAL_VARIABLE_TOKEN : "") + name.getDefaultVariableName(), e, false);
-		return val;
+		Object value = !list ? convertIfOldPlayer(name, event, Variables.getVariable(name, event, local)) : Variables.getVariable(name, event, local);
+		// Check for default variables.
+		if (value == null) {
+			Pair<String, String> pair = this.name.getDefaultVariableName(event);
+			value = Variables.getVariable((local ? LOCAL_VARIABLE_TOKEN : "") + pair.getFirst(), event, local);
+			if (value != null)
+				return value;
+			// If the default variable for the expression's classinfo return type was not found, check for default variable <object>
+			return Variables.getVariable((local ? LOCAL_VARIABLE_TOKEN : "") + pair.getSecond(), event, local);
+		}
+		return value;
 	}
 
 	@SuppressWarnings("unchecked")
