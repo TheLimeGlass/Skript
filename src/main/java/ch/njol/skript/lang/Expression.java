@@ -162,7 +162,7 @@ public interface Expression<T> extends SyntaxElement, Debuggable {
 	/**
 	 * Attempts to grab the return type with an event.
 	 * <p>
-	 * This method can used to get the runtime value for Command Arguments, UnparsedLiterals, and Expressions in Default Variables.
+	 * This method can be used to get the runtime value for Command Arguments, UnparsedLiterals, and Expressions in Default Variables.
 	 * At some parse points, Skript only knows Object.class as the return type. This method helps if an event is known.
 	 * <p>
 	 * If {@link #getAnd()} returns false, this method resorts to {@link #getReturnType()}
