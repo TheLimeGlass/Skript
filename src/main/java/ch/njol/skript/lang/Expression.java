@@ -175,6 +175,8 @@ public interface Expression<T> extends SyntaxElement, Debuggable {
 		if (!getAnd())
 			return getReturnType();
 		T[] values = getArray(event);
+		if (values == null || values.length == 0)
+			return getReturnType();
 		assert values.length >= 1;
 		return (Class<? extends T>) values[0].getClass();
 	}
