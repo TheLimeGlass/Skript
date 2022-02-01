@@ -18,6 +18,40 @@
  */
 package ch.njol.skript;
 
+import java.io.File;
+import java.io.FileFilter;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Supplier;
+import java.util.logging.Level;
+import java.util.regex.Matcher;
+
+import org.bukkit.Bukkit;
+import org.bukkit.event.Event;
+import org.eclipse.jdt.annotation.Nullable;
+
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
+
 import ch.njol.skript.aliases.Aliases;
 import ch.njol.skript.aliases.ScriptAliases;
 import ch.njol.skript.bukkitutil.CommandReloader;
@@ -64,41 +98,6 @@ import ch.njol.util.Kleenean;
 import ch.njol.util.NonNullPair;
 import ch.njol.util.OpenCloseable;
 import ch.njol.util.StringUtils;
-import org.bukkit.Bukkit;
-import org.bukkit.event.Event;
-import org.eclipse.jdt.annotation.Nullable;
-
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.HashMultiset;
-import com.google.common.collect.Multimap;
-import com.google.common.collect.Multiset;
-
-import java.io.File;
-import java.io.FileFilter;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.Callable;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Supplier;
-import java.util.logging.Level;
-import java.util.regex.Matcher;
 
 /**
  * The main class for loading, unloading and reloading scripts.
@@ -213,7 +212,6 @@ public class ScriptLoader {
 	/**
 	 * All loaded script files.
 	 */
-	@SuppressWarnings("null")
 	private static final Set<File> loadedFiles = Collections.synchronizedSet(new HashSet<>());
 	
 	/**
@@ -904,7 +902,6 @@ public class ScriptLoader {
 	 * actually loading that script.
 	 * @param f Script file.
 	 */
-	@SuppressWarnings("resource") // Stream is closed in Config constructor called in loadStructure
 	@Nullable
 	public static Config loadStructure(File f) {
 		if (!f.exists()) { // If file does not exist...
@@ -1195,12 +1192,10 @@ public class ScriptLoader {
 	/*
 	 * Loaded script statistics
 	 */
-	@SuppressWarnings("null") // Collections methods don't return nulls, ever
 	public static Collection<File> getLoadedFiles() {
 		return Collections.unmodifiableCollection(loadedFiles);
 	}
 	
-	@SuppressWarnings("null")
 	public static Collection<File> getDisabledFiles() {
 		return Collections.unmodifiableCollection(disabledFiles);
 	}
