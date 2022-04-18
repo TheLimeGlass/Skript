@@ -75,6 +75,7 @@ import ch.njol.skript.registrations.Classes;
 import ch.njol.skript.util.StringMode;
 import ch.njol.skript.util.Timespan;
 import ch.njol.skript.util.Utils;
+import ch.njol.skript.variables.Variables;
 import ch.njol.util.Callback;
 import ch.njol.util.NonNullPair;
 import ch.njol.util.StringUtils;
@@ -285,6 +286,7 @@ public abstract class Commands {
 						if (SkriptConfig.logPlayerCommands.value() && !(sender instanceof ConsoleCommandSender))
 							Skript.info(sender.getName() + " issued effect command: " + command);
 						TriggerItem.walk(effect, effectCommand);
+						Variables.removeLocals(effectCommand);
 					} else {
 						sender.sendMessage(ChatColor.RED + "your effect command '" + ChatColor.stripColor(command) + "' was cancelled.");
 					}
