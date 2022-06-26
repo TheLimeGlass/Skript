@@ -251,6 +251,7 @@ public class VariableString implements Expression<String> {
 				} else {
 					RetainingLogHandler log = SkriptLogger.startRetainingLog();
 					try {
+						@SuppressWarnings("unchecked")
 						Expression<?> expr =
 							new SkriptParser(s.substring(c + 1, c2), SkriptParser.PARSE_EXPRESSIONS, ParseContext.DEFAULT)
 								.parseExpression(Object.class);
@@ -575,6 +576,7 @@ public class VariableString implements Expression<String> {
 	public VariableString setMode(StringMode mode) {
 		if (this.mode == mode || isSimple)
 			return this;
+		@SuppressWarnings("resource")
 		BlockingLogHandler h = new BlockingLogHandler().start();
 		try {
 			VariableString vs = newInstance(orig, mode);

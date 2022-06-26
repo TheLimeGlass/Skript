@@ -1,0 +1,15 @@
+
+variables:
+	{testing variables1::%entity%} = 69
+	{testing variables2::%object%} = 69
+
+on test "default variables":
+	spawn a pig at spawn of world "world"
+	set {_pig} to last spawned pig
+	assert {testing variables1::%{_pig}%} is set with "default variable 1 was not set"
+	assert {testing variables1::%{_pig}%} is 69 with "default variable 1 failed to set: Value with pig = %{testing variables1::%{_pig}%}%"
+	set {_string} to "empty string"
+	assert {testing variables2::%{_string}%} is set with "default variable 2 was not set"
+	assert {testing variables2::%{_string}%} is 9 with "default variable 2 failed to set: Value with string = %{testing variables2::%{_string}%}%"
+	delete last spawned pig
+	delete {testing variables1::*} and  {testing variables2::*}
