@@ -22,13 +22,17 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.bukkit.ChatColor;
 import org.bukkit.event.Event;
 import org.eclipse.jdt.annotation.Nullable;
 
+import com.google.common.collect.Lists;
+
 import ch.njol.skript.Skript;
 import ch.njol.skript.classes.Changer.ChangeMode;
+import ch.njol.skript.classes.ClassInfo;
 import ch.njol.skript.expressions.ExprColoured;
 import ch.njol.skript.lang.SkriptParser.ParseResult;
 import ch.njol.skript.lang.util.ConvertedExpression;
@@ -43,7 +47,6 @@ import ch.njol.skript.util.chat.ChatMessages;
 import ch.njol.skript.util.chat.MessageComponent;
 import ch.njol.util.Checker;
 import ch.njol.util.Kleenean;
-import ch.njol.util.Pair;
 import ch.njol.util.StringUtils;
 import ch.njol.util.coll.CollectionUtils;
 import ch.njol.util.coll.iterator.SingleItemIterator;
@@ -536,34 +539,33 @@ public class VariableString implements Expression<String> {
 	}
 	
 	/**
-	 * Builds a pair of the variable string with the default variable type hints.
-	 * <p>
-	 * The first String in the pair is with the classinfo code name.
-	 * The second String in the pair is the formatted variable string but the code names are <object>.
-	 * <p>
-	 * @return Pair<String, String>
+	 * Builds all possible default variable type hints based on the super type of the expression.
+	 * 
+	 * @return List<String> of all possible super class code names.
 	 */
-	public Pair<String, String> getDefaultVariableName(Event event) {
+	public List<String> getDefaultVariableNames(Event event) {
 		if (isSimple) {
 			assert simple != null;
-			return new Pair<>(simple, "object");
+			return Lists.newArrayList(simple, "object");
 		}
 		Object[] string = this.string;
 		assert string != null;
-		StringBuilder builder = new StringBuilder();
-		StringBuilder objectBuilder = new StringBuilder();
+		List<StringBuilder> typeHints = Lists.newArrayList(new StringBuilder());
 		for (Object object : string) {
-			if (object instanceof Expression) {
-				objectBuilder.append("<object>");
-				builder.append("<")
-					.append(Classes.getSuperClassInfo(((Expression<?>) object).getReturnType(event)).getCodeName())
-					.append(">");
-			} else {
-				objectBuilder.append(object);
-				builder.append(object);
+			if (!(object instanceof Expression)) {
+				typeHints.forEach(builder -> builder.append(object));
+				continue;
+			}
+			StringBuilder[] current = typeHints.toArray(StringBuilder[]::new);
+			for (ClassInfo<?> classInfo : Classes.getAllSuperClassInfos(((Expression<?>) object).getReturnType(event))) {
+				for (StringBuilder builder : current) {
+					String hint = builder.toString() + "<" + classInfo.getCodeName() + ">";
+					typeHints.add(new StringBuilder(hint));
+					typeHints.remove(builder);
+				}
 			}
 		}
-		return new Pair<>(builder.toString(), objectBuilder.toString());
+		return typeHints.stream().map(builder -> builder.toString()).collect(Collectors.toList());
 	}
 	
 	public boolean isSimple() {

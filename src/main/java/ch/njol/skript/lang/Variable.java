@@ -285,6 +285,7 @@ public class Variable<T> implements Expression<T> {
 		return toString(null, false);
 	}
 
+	@SuppressWarnings("unchecked")
 	@Override
 	public <R> Variable<R> getConvertedExpression(Class<R>... to) {
 		return new Variable<>(name, to, local, list, this);
@@ -301,14 +302,13 @@ public class Variable<T> implements Expression<T> {
 		Object value = !list ? convertIfOldPlayer(name, event, Variables.getVariable(name, event, local)) : Variables.getVariable(name, event, local);
 		// Check for default variables.
 		if (value == null) {
-			Pair<String, String> pair = this.name.getDefaultVariableName(event);
-			value = Variables.getVariable((local ? LOCAL_VARIABLE_TOKEN : "") + pair.getFirst(), event, local);
-			if (value != null)
-				return value;
-			// If the default variable for the expression's classinfo return type was not found, check for default variable <object>
-			return Variables.getVariable((local ? LOCAL_VARIABLE_TOKEN : "") + pair.getSecond(), event, local);
+			for (String typeHint : this.name.getDefaultVariableNames(event)) {
+				value = Variables.getVariable((local ? LOCAL_VARIABLE_TOKEN : "") + typeHint, event, local);
+				if (value != null)
+					return value;
+			}
 		}
-		return value;
+		return null;
 	}
 
 	@SuppressWarnings("unchecked")

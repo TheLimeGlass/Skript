@@ -650,7 +650,7 @@ public class ScriptLoader {
 							if (name.startsWith("{") && name.endsWith("}"))
 								name = "" + name.substring(1, name.length() - 1);
 							String var = name;
-							name = StringUtils.replaceAll(name, "%(.+)?%", m -> {
+							name = StringUtils.replaceAll(name, "%(.+?)%", m -> {
 								if (m.group(1).contains("{") || m.group(1).contains("}") || m.group(1).contains("%")) {
 									Skript.error("'" + var + "' is not a valid name for a default variable");
 									return null;
