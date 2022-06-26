@@ -308,7 +308,7 @@ public class Variable<T> implements Expression<T> {
 					return value;
 			}
 		}
-		return null;
+		return value;
 	}
 
 	@SuppressWarnings("unchecked")
