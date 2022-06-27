@@ -654,7 +654,7 @@ public class ScriptLoader {
 								name = "" + name.substring(1, name.length() - 1);
 							if (name.startsWith("_")) {
 								Skript.error("'" + name + "' cannot be a local variable in default variables.");
-								return null;
+								continue;
 							}
 							String var = name;
 							name = StringUtils.replaceAll(name, "%(.+?)%", m -> {
