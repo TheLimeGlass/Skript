@@ -197,6 +197,9 @@ public class ScriptLoader {
 	 */
 	private static final Map<String, Set<String>> commandNames = new HashMap<>();
 
+	/**
+	 * A multimap representing the config file name (example.sk) and the variable strings example::%entity%
+	 */
 	private static final Multimap<String, String> defaultVariables = HashMultimap.create();
 	
 	/**
@@ -649,10 +652,14 @@ public class ScriptLoader {
 							String name = n.getKey().toLowerCase(Locale.ENGLISH);
 							if (name.startsWith("{") && name.endsWith("}"))
 								name = "" + name.substring(1, name.length() - 1);
+							if (name.startsWith("_")) {
+								Skript.error("'" + name + "' cannot be a local variable in default variables.");
+								return null;
+							}
 							String var = name;
 							name = StringUtils.replaceAll(name, "%(.+?)%", m -> {
 								if (m.group(1).contains("{") || m.group(1).contains("}") || m.group(1).contains("%")) {
-									Skript.error("'" + var + "' is not a valid name for a default variable");
+									Skript.error("'" + var + "' is not a valid name for a default variable.");
 									return null;
 								}
 								ClassInfo<?> ci = Classes.getClassInfoFromUserInput("" + m.group(1));

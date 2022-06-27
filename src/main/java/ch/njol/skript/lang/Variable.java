@@ -299,11 +299,11 @@ public class Variable<T> implements Expression<T> {
 		String name = this.name.toString(event);
 		if (name.endsWith(Variable.SEPARATOR + "*") != list) // prevents e.g. {%expr%} where "%expr%" ends with "::*" from returning a Map
 			return null;
-		Object value = !list ? convertIfOldPlayer(name, event, Variables.getVariable(name, event, local)) : Variables.getVariable(name, event, local);
+		Object value = !list ? convertIfOldPlayer(name, event, Variables.getVariable(name, event, false)) : Variables.getVariable(name, event, false);
 		// Check for default variables.
 		if (value == null) {
 			for (String typeHint : this.name.getDefaultVariableNames(event)) {
-				value = Variables.getVariable((local ? LOCAL_VARIABLE_TOKEN : "") + typeHint, event, local);
+				value = Variables.getVariable(typeHint, event, false);
 				if (value != null)
 					return value;
 			}
