@@ -18,6 +18,7 @@
  */
 package ch.njol.skript.lang;
 
+import ch.njol.skript.ScriptLoader;
 import ch.njol.skript.Skript;
 import ch.njol.skript.SkriptAPIException;
 import ch.njol.skript.SkriptConfig;
@@ -86,12 +87,17 @@ public class Variable<T> implements Expression<T> {
 	@Nullable
 	private final Variable<?> source;
 
+	@Nullable
+	private final Config script;
+
 	@SuppressWarnings("unchecked")
-	private Variable(VariableString name, Class<? extends T>[] types, boolean local, boolean list, @Nullable Variable<?> source) {
+	private Variable(VariableString name, Class<? extends T>[] types, boolean local, boolean list, @Nullable Config script, @Nullable Variable<?> source) {
 		assert name != null;
 		assert types != null && types.length > 0;
 
 		assert name.isSimple() || name.getMode() == StringMode.VARIABLE_NAME;
+
+		this.script = script;
 
 		this.local = local;
 		this.list = list;
@@ -191,6 +197,7 @@ public class Variable<T> implements Expression<T> {
 				"{" + StringUtils.substring(currentScript.getFileName(), 0, -3) + "." + name + "}");
 		}
 
+		ParserInstance parser = ParserInstance.get();
 		// Check for local variable type hints
 		if (isLocal && vs.isSimple()) { // Only variable names we fully know already
 			Class<?> hint = TypeHints.get(vs.toString());
@@ -200,7 +207,7 @@ public class Variable<T> implements Expression<T> {
 					assert type != null;
 					if (type.isAssignableFrom(hint)) {
 						// Hint matches, use variable with exactly correct type
-						return new Variable<>(vs, CollectionUtils.array(type), isLocal, isPlural, null);
+						return new Variable<>(vs, CollectionUtils.array(type), isLocal, isPlural, parser.getCurrentScript(), null);
 					}
 				}
 
@@ -208,16 +215,16 @@ public class Variable<T> implements Expression<T> {
 				for (Class<? extends T> type : types) {
 					if (Converters.converterExists(hint, type)) {
 						// Hint matches, even though converter is needed
-						return new Variable<>(vs, CollectionUtils.array(type), isLocal, isPlural, null);
+						return new Variable<>(vs, CollectionUtils.array(type), isLocal, isPlural, parser.getCurrentScript(), null);
 					}
 
 					// Special cases
 					if (type.isAssignableFrom(World.class) && hint.isAssignableFrom(String.class)) {
 						// String->World conversion is weird spaghetti code
-						return new Variable<>(vs, types, isLocal, isPlural, null);
+						return new Variable<>(vs, types, isLocal, isPlural, parser.getCurrentScript(), null);
 					} else if (type.isAssignableFrom(Player.class) && hint.isAssignableFrom(String.class)) {
 						// String->Player conversion is not available at this point
-						return new Variable<>(vs, types, isLocal, isPlural, null);
+						return new Variable<>(vs, types, isLocal, isPlural, parser.getCurrentScript(), null);
 					}
 				}
 
@@ -232,7 +239,7 @@ public class Variable<T> implements Expression<T> {
 			}
 		}
 
-		return new Variable<>(vs, types, isLocal, isPlural, null);
+		return new Variable<>(vs, types, isLocal, isPlural, parser.getCurrentScript(), null);
 	}
 
 	@Override
@@ -288,27 +295,33 @@ public class Variable<T> implements Expression<T> {
 	@SuppressWarnings("unchecked")
 	@Override
 	public <R> Variable<R> getConvertedExpression(Class<R>... to) {
-		return new Variable<>(name, to, local, list, this);
+		return new Variable<>(name, to, local, list, ParserInstance.get().getCurrentScript(), this);
 	}
 
 	/**
 	 * Gets the value of this variable as stored in the variables map.
+	 * This method also checks against default variables.
 	 */
 	@Nullable
 	public Object getRaw(Event event) {
 		String name = this.name.toString(event);
-		if (name.endsWith(Variable.SEPARATOR + "*") != list) // prevents e.g. {%expr%} where "%expr%" ends with "::*" from returning a Map
+
+		// prevents e.g. {%expr%} where "%expr%" ends with "::*" from returning a Map
+		if (name.endsWith(Variable.SEPARATOR + "*") != list)
 			return null;
 		Object value = !list ? convertIfOldPlayer(name, event, Variables.getVariable(name, event, false)) : Variables.getVariable(name, event, false);
-		// Check for default variables.
-		if (value == null) {
-			for (String typeHint : this.name.getDefaultVariableNames(event)) {
-				value = Variables.getVariable(typeHint, event, false);
-				if (value != null)
-					return value;
-			}
+		if (value != null)
+			return value;
+
+		// Check for default variables if value is still null.
+		if (script != null && !ScriptLoader.hasDefaultVariables(script))
+			return null;
+		for (String typeHint : this.name.getDefaultVariableNames(event)) {
+			value = Variables.getVariable(typeHint, event, false);
+			if (value != null)
+				return value;
 		}
-		return value;
+		return null;
 	}
 
 	@SuppressWarnings("unchecked")

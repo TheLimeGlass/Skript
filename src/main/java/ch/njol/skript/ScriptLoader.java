@@ -208,8 +208,17 @@ public class ScriptLoader {
 	private static ParserInstance getParser() {
 		return ParserInstance.get();
 	}
-	
-	
+
+	/**
+	 * Checks if a user has defined default variables for the provided script.
+	 * 
+	 * @param script The {@link ch.njol.skript.config.Config} to check for default variables.
+	 * @return boolean if the script does have default variables defined.
+	 */
+	public static boolean hasDefaultVariables(Config script) {
+		return defaultVariables.containsKey(script.getFileName());
+	}
+
 	/*
 	 * Enabled/disabled script tracking
 	 */
