@@ -194,10 +194,9 @@ public class Variable<T> implements Expression<T> {
 				&& (isLocal ? name.substring(LOCAL_VARIABLE_TOKEN.length()) : name).startsWith("%")) {
 			Skript.warning("Starting a variable's name with an expression is discouraged ({" + name + "}). " +
 				"You could prefix it with the script's name: " +
-				"{" + StringUtils.substring(currentScript.getFileName(), 0, -3) + "." + name + "}");
+				"{" + StringUtils.substring(currentScript.getFileName(), 0, -3) + "::" + name + "}");
 		}
 
-		ParserInstance parser = ParserInstance.get();
 		// Check for local variable type hints
 		if (isLocal && vs.isSimple()) { // Only variable names we fully know already
 			Class<?> hint = TypeHints.get(vs.toString());
@@ -207,7 +206,7 @@ public class Variable<T> implements Expression<T> {
 					assert type != null;
 					if (type.isAssignableFrom(hint)) {
 						// Hint matches, use variable with exactly correct type
-						return new Variable<>(vs, CollectionUtils.array(type), isLocal, isPlural, parser.getCurrentScript(), null);
+						return new Variable<>(vs, CollectionUtils.array(type), isLocal, isPlural, currentScript, null);
 					}
 				}
 
@@ -215,16 +214,16 @@ public class Variable<T> implements Expression<T> {
 				for (Class<? extends T> type : types) {
 					if (Converters.converterExists(hint, type)) {
 						// Hint matches, even though converter is needed
-						return new Variable<>(vs, CollectionUtils.array(type), isLocal, isPlural, parser.getCurrentScript(), null);
+						return new Variable<>(vs, CollectionUtils.array(type), isLocal, isPlural, currentScript, null);
 					}
 
 					// Special cases
 					if (type.isAssignableFrom(World.class) && hint.isAssignableFrom(String.class)) {
 						// String->World conversion is weird spaghetti code
-						return new Variable<>(vs, types, isLocal, isPlural, parser.getCurrentScript(), null);
+						return new Variable<>(vs, types, isLocal, isPlural, currentScript, null);
 					} else if (type.isAssignableFrom(Player.class) && hint.isAssignableFrom(String.class)) {
 						// String->Player conversion is not available at this point
-						return new Variable<>(vs, types, isLocal, isPlural, parser.getCurrentScript(), null);
+						return new Variable<>(vs, types, isLocal, isPlural, currentScript, null);
 					}
 				}
 
@@ -239,7 +238,7 @@ public class Variable<T> implements Expression<T> {
 			}
 		}
 
-		return new Variable<>(vs, types, isLocal, isPlural, parser.getCurrentScript(), null);
+		return new Variable<>(vs, types, isLocal, isPlural, currentScript, null);
 	}
 
 	@Override
@@ -327,25 +326,25 @@ public class Variable<T> implements Expression<T> {
 	@SuppressWarnings("unchecked")
 	@Nullable
 	private Object get(Event e) {
-		Object val = getRaw(e);
+		Object value = getRaw(e);
 		if (!list)
-			return val;
-		if (val == null)
+			return value;
+		if (value == null)
 			return Array.newInstance(types[0], 0);
-		List<Object> l = new ArrayList<>();
+		List<Object> list = new ArrayList<>();
 		String name = StringUtils.substring(this.name.toString(e), 0, -1);
-		for (Entry<String, ?> v : ((Map<String, ?>) val).entrySet()) {
-			if (v.getKey() != null && v.getValue() != null) {
-				Object o;
-				if (v.getValue() instanceof Map)
-					o = ((Map<String, ?>) v.getValue()).get(null);
+		for (Entry<String, ?> entry : ((Map<String, ?>) value).entrySet()) {
+			if (entry.getKey() != null && entry.getValue() != null) {
+				Object object;
+				if (entry.getValue() instanceof Map)
+					object = ((Map<String, ?>) entry.getValue()).get(null);
 				else
-					o = v.getValue();
-				if (o != null)
-					l.add(convertIfOldPlayer(name + v.getKey(), e, o));
+					object = entry.getValue();
+				if (object != null)
+					list.add(convertIfOldPlayer(name + entry.getKey(), e, object));
 			}
 		}
-		return l.toArray();
+		return list.toArray();
 	}
 
 	private final static boolean uuidSupported = Skript.methodExists(OfflinePlayer.class, "getUniqueId");
@@ -355,10 +354,11 @@ public class Variable<T> implements Expression<T> {
 	 * because the player object inside the variable will be a (kinda) dead variable
 	 * as a new player object has been created by the server.
 	 */
-	@Nullable Object convertIfOldPlayer(String key, Event event, @Nullable Object t){
-		if(SkriptConfig.enablePlayerVariableFix.value() && t != null && t instanceof Player){
+	@Nullable
+	private Object convertIfOldPlayer(String key, Event event, @Nullable Object t) {
+		if (SkriptConfig.enablePlayerVariableFix.value() && t != null && t instanceof Player) {
 			Player p = (Player) t;
-			if(!p.isValid() && p.isOnline()){
+			if (!p.isValid() && p.isOnline()) {
 				Player player = uuidSupported ? Bukkit.getPlayer(p.getUniqueId()) : Bukkit.getPlayerExact(p.getName());
 				Variables.setVariable(key, player, event, local);
 				return player;
