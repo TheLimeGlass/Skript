@@ -10,6 +10,9 @@ on test "default variables":
 	assert {testing variables1::%last spawned pig%} is 69 with "default variable 1 failed: Value with pig = %{testing variables1::%last spawned pig%}%"
 
 	set {_string} to "empty string"
+	set {_local} to {_string}
+	assert {_local} is {_string} with "Local variable failed to copy another local variable."
+
 	assert {testing variables2::%{_string}%} is set with "default variable 2 was not set"
 	assert {testing variables2::%{_string}%} is 69 with "default variable 2 failed: Value with string = %{testing variables2::%{_string}%}%"
 
