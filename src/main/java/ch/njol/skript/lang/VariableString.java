@@ -119,7 +119,7 @@ public class VariableString implements Expression<String> {
 			// For unformatted string, don't format stuff
 			this.stringUnformatted[i] = o;
 		}
-		this.components = components.toArray(new MessageComponent[0]);
+		this.components = components.toArray(MessageComponent[]::new);
 		
 		this.mode = mode;
 		
@@ -134,53 +134,6 @@ public class VariableString implements Expression<String> {
 	@Nullable
 	public static VariableString newInstance(String s) {
 		return newInstance(s, StringMode.MESSAGE);
-	}
-
-	/**
-	 * Tests whether a string is correctly quoted, i.e. only has doubled double quotes in it.
-	 * Singular double quotes are only allowed between percentage signs.
-	 * 
-	 * @param s The string
-	 * @param withQuotes Whether s must be surrounded by double quotes or not
-	 * @return Whether the string is quoted correctly
-	 */
-	public static boolean isQuotedCorrectly(String s, boolean withQuotes) {
-		if (withQuotes && (!s.startsWith("\"") || !s.endsWith("\"")))
-			return false;
-		boolean quote = false;
-		boolean percentage = false;
-		for (int i = withQuotes ? 1 : 0; i < (withQuotes ? s.length() - 1 : s.length()); i++) {
-			if (percentage) {
-				if (s.charAt(i) == '%')
-					percentage = false;
-				
-				continue;
-			}
-			
-			if (quote && s.charAt(i) != '"')
-				return false;
-			
-			if (s.charAt(i) == '"') {
-				quote = !quote;
-			} else if (s.charAt(i) == '%') {
-				percentage = true;
-			}
-		}
-		return !quote;
-	}
-	
-	/**
-	 * Removes quoted quotes from a string.
-	 * 
-	 * @param s The string
-	 * @param surroundingQuotes Whether the string has quotes at the start & end that should be removed
-	 * @return The string with double quotes replaced with signle ones and optionally with removed surrounding quotes.
-	 */
-	public static String unquote(String s, boolean surroundingQuotes) {
-		assert isQuotedCorrectly(s, surroundingQuotes);
-		if (surroundingQuotes)
-			return s.substring(1, s.length() - 1).replace("\"\"", "\"");
-		return s.replace("\"\"", "\"");
 	}
 	
 	/**
@@ -304,6 +257,53 @@ public class VariableString implements Expression<String> {
 	}
 
 	/**
+	 * Tests whether a string is correctly quoted, i.e. only has doubled double quotes in it.
+	 * Singular double quotes are only allowed between percentage signs.
+	 * 
+	 * @param s The string
+	 * @param withQuotes Whether s must be surrounded by double quotes or not
+	 * @return Whether the string is quoted correctly
+	 */
+	public static boolean isQuotedCorrectly(String s, boolean withQuotes) {
+		if (withQuotes && (!s.startsWith("\"") || !s.endsWith("\"")))
+			return false;
+		boolean quote = false;
+		boolean percentage = false;
+		for (int i = withQuotes ? 1 : 0; i < (withQuotes ? s.length() - 1 : s.length()); i++) {
+			if (percentage) {
+				if (s.charAt(i) == '%')
+					percentage = false;
+				
+				continue;
+			}
+			
+			if (quote && s.charAt(i) != '"')
+				return false;
+			
+			if (s.charAt(i) == '"') {
+				quote = !quote;
+			} else if (s.charAt(i) == '%') {
+				percentage = true;
+			}
+		}
+		return !quote;
+	}
+	
+	/**
+	 * Removes quoted quotes from a string.
+	 * 
+	 * @param s The string
+	 * @param surroundingQuotes Whether the string has quotes at the start & end that should be removed
+	 * @return The string with double quotes replaced with signle ones and optionally with removed surrounding quotes.
+	 */
+	public static String unquote(String s, boolean surroundingQuotes) {
+		assert isQuotedCorrectly(s, surroundingQuotes);
+		if (surroundingQuotes)
+			return s.substring(1, s.length() - 1).replace("\"\"", "\"");
+		return s.replace("\"\"", "\"");
+	}
+
+	/**
 	 * Copied from {@code SkriptParser#nextBracket(String, char, char, int, boolean)}, but removed escaping & returns -1 on error.
 	 * 
 	 * @param s
@@ -355,62 +355,9 @@ public class VariableString implements Expression<String> {
 	}
 	
 	/**
-	 * Parses all expressions in the string and returns it.
-	 * If this is a simple string, the event may be null.
-	 * 
-	 * @param e Event to pass to the expressions.
-	 * @return The input string with all expressions replaced.
-	 */
-	public String toString(@Nullable Event e) {
-		if (isSimple) {
-			assert simple != null;
-			return simple;
-		}
-
-		if (e == null) {
-			throw new IllegalArgumentException("Event may not be null in non-simple VariableStrings!");
-		}
-
-		Object[] string = this.string;
-		assert string != null;
-		StringBuilder b = new StringBuilder();
-		for (Object o : string) {
-			if (o instanceof Expression<?>) {
-				b.append(Classes.toString(((Expression<?>) o).getArray(e), true, mode));
-			} else {
-				b.append(o);
-			}
-		}
-		return b.toString();
-	}
-	
-	/**
-	 * Parses all expressions in the string and returns it.
-	 * Does not parse formatting codes!
-	 * @param e Event to pass to the expressions.
-	 * @return The input string with all expressions replaced.
-	 */
-	public String toUnformattedString(Event e) {
-		if (isSimple) {
-			assert simpleUnformatted != null;
-			return simpleUnformatted;
-		}
-		Object[] string = this.stringUnformatted;
-		assert string != null;
-		StringBuilder b = new StringBuilder();
-		for (Object o : string) {
-			if (o instanceof Expression<?>) {
-				b.append(Classes.toString(((Expression<?>) o).getArray(e), true, mode));
-			} else {
-				b.append(o);
-			}
-		}
-		return b.toString();
-	}
-	
-	/**
 	 * Gets message components from this string. Formatting is parsed only
 	 * in simple parts for security reasons.
+	 * 
 	 * @param e Currently running event.
 	 * @return Message components.
 	 */
@@ -476,6 +423,7 @@ public class VariableString implements Expression<String> {
 	/**
 	 * Gets message components from this string. Formatting is parsed
 	 * everywhere, which is a potential security risk.
+	 * 
 	 * @param e Currently running event.
 	 * @return Message components.
 	 */
@@ -508,6 +456,61 @@ public class VariableString implements Expression<String> {
 			}
 		}
 		return null;
+	}
+
+	/**
+	 * Parses all expressions in the string and returns it.
+	 * Does not parse formatting codes!
+	 * 
+	 * @param e Event to pass to the expressions.
+	 * @return The input string with all expressions replaced.
+	 */
+	public String toUnformattedString(Event e) {
+		if (isSimple) {
+			assert simpleUnformatted != null;
+			return simpleUnformatted;
+		}
+		Object[] string = this.stringUnformatted;
+		assert string != null;
+		StringBuilder b = new StringBuilder();
+		for (Object o : string) {
+			if (o instanceof Expression<?>) {
+				b.append(Classes.toString(((Expression<?>) o).getArray(e), true, mode));
+			} else {
+				b.append(o);
+			}
+		}
+		return b.toString();
+	}
+
+	/**
+	 * Parses all expressions in the string and returns it.
+	 * If this is a simple string, the event may be null.
+	 * 
+	 * @param e Event to pass to the expressions.
+	 * @return The input string with all expressions replaced.
+	 */
+	public String toString(@Nullable Event e) {
+		if (isSimple) {
+			assert simple != null;
+			return simple;
+		}
+
+		if (e == null) {
+			throw new IllegalArgumentException("Event may not be null in non-simple VariableStrings!");
+		}
+
+		Object[] string = this.string;
+		assert string != null;
+		StringBuilder b = new StringBuilder();
+		for (Object o : string) {
+			if (o instanceof Expression<?>) {
+				b.append(Classes.toString(((Expression<?>) o).getArray(e), true, mode));
+			} else {
+				b.append(o);
+			}
+		}
+		return b.toString();
 	}
 	
 	@Override

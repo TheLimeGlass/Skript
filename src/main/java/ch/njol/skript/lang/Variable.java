@@ -309,7 +309,7 @@ public class Variable<T> implements Expression<T> {
 		// prevents e.g. {%expr%} where "%expr%" ends with "::*" from returning a Map
 		if (name.endsWith(Variable.SEPARATOR + "*") != list)
 			return null;
-		Object value = !list ? convertIfOldPlayer(name, event, Variables.getVariable(name, event, false)) : Variables.getVariable(name, event, false);
+		Object value = !list ? convertIfOldPlayer(name, event, Variables.getVariable(name, event, local)) : Variables.getVariable(name, event, local);
 		if (value != null)
 			return value;
 
