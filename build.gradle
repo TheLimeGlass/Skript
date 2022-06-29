@@ -191,6 +191,7 @@ void createTestTask(String name, String environments, boolean devMode) {
 // Register different Skript testing tasks
 createTestTask('quickTest', 'src/test/skript/environments/main/paper-1.19.json', false)
 createTestTask('skriptTest', 'src/test/skript/environments/main', false)
+createTestTask('skriptTestJava11', 'src/test/skript/environments/extra', false)
 createTestTask('skriptTestFull', 'src/test/skript/environments/', false)
 createTestTask('skriptTestDev', 'src/test/skript/environments/main/' + (project.property('testEnv') == null
 	? 'paper-1.19.json' : project.property('testEnv') + '.json'), true)
