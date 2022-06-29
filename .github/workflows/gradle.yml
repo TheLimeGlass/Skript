@@ -1,4 +1,4 @@
-name: Java CI
+name: Java 17 (1.17+)
 
 on: [push, pull_request]
 
@@ -13,7 +13,9 @@ jobs:
             - name: Set up JDK 17
               uses: actions/setup-java@v2
               with:
-                  java-version: 17
+                  java-version: '17'
+                  distribution: 'adopt'
+                  cache: gradle
             - name: Grant execute permission for gradlew
               run: chmod +x gradlew
             - name: Build Skript
