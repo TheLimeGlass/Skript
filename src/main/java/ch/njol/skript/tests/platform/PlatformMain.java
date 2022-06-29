@@ -33,6 +33,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.apache.commons.lang.StringUtils;
+
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonSyntaxException;
@@ -85,7 +87,7 @@ public class PlatformMain {
 		for (Environment env : envs) {
 			System.out.println("Starting testing on " + env.getName());
 			env.initialize(dataRoot, runnerRoot, false);
-			TestResults results = env.runTests(runnerRoot, testsRoot, devMode, "-Xmx1G");
+			TestResults results = env.runTests(runnerRoot, testsRoot, devMode, "-Xmx5G");
 			
 			// Collect results
 			allTests.addAll(results.getSucceeded());
@@ -105,9 +107,10 @@ public class PlatformMain {
 		Collections.sort(failNames);
 		
 		// All succeeded tests in a single line
+		System.out.printf("%s Results %s%n", StringUtils.repeat("-", 25), StringUtils.repeat("-", 25));
 		System.out.println("Tested environments: " + String.join(", ",
 				envs.stream().map(Environment::getName).collect(Collectors.toList())));
-		System.out.println("Succeeded: " + String.join(", ", succeeded));
+		System.out.println("\nSucceeded: " + String.join(", ", succeeded));
 		if (!failNames.isEmpty()) { // More space for failed tests, they're important
 			System.err.println("Failed:");
 			for (String failed : failNames) {
@@ -119,5 +122,6 @@ public class PlatformMain {
 			}
 			System.exit(failNames.size()); // Error code to indicate how many tests failed
 		}
+		System.out.printf("%n%s", StringUtils.repeat("-", 60));
 	}
 }
