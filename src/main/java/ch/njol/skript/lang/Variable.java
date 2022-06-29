@@ -39,6 +39,7 @@ import ch.njol.skript.util.ScriptOptions;
 import ch.njol.skript.util.StringMode;
 import ch.njol.skript.util.Utils;
 import ch.njol.skript.variables.TypeHints;
+import ch.njol.skript.variables.TypeHints.HintContext;
 import ch.njol.skript.variables.Variables;
 import ch.njol.util.Checker;
 import ch.njol.util.Kleenean;
@@ -78,10 +79,17 @@ public class Variable<T> implements Expression<T> {
 	 */
 	private final VariableString name;
 
+	private final Class<? extends T>[] types;
 	private final Class<T> superType;
-	final Class<? extends T>[] types;
 
-	final boolean local;
+	/**
+	 * Cache for when the variable actually gets it's value at runtime.
+	 * Will be null until ran at runtime. Local variables have type hints that help it know it's value already.
+	 */
+	@Nullable
+	private Class<T> actualType;
+
+	private final boolean local;
 	private final boolean list;
 
 	@Nullable
@@ -199,7 +207,7 @@ public class Variable<T> implements Expression<T> {
 
 		// Check for local variable type hints
 		if (isLocal && vs.isSimple()) { // Only variable names we fully know already
-			Class<?> hint = TypeHints.get(vs.toString());
+			Class<?> hint = TypeHints.getForReturnType(vs.toString());
 			if (hint != null && !hint.equals(Object.class)) { // Type hint available
 				// See if we can get correct type without conversion
 				for (Class<? extends T> type : types) {
@@ -303,22 +311,27 @@ public class Variable<T> implements Expression<T> {
 	 */
 	@Nullable
 	public Object getRaw(Event event) {
-		String name = this.name.toString(event);
-
-		// prevents e.g. {%expr%} where "%expr%" ends with "::*" from returning a Map
-		if (name.endsWith(Variable.SEPARATOR + "*") != list)
-			return null;
-		Object value = !list ? convertIfOldPlayer(name, event, Variables.getVariable(name, event, local)) : Variables.getVariable(name, event, local);
-		if (value != null)
-			return value;
-
-		// Check for default variables if value is still null.
-		if (script != null && !ScriptLoader.hasDefaultVariables(script))
-			return null;
-		for (String typeHint : this.name.getDefaultVariableNames(event)) {
-			value = Variables.getVariable(typeHint, event, false);
+		TypeHints.enterScope(HintContext.VARIABLE_STRING);
+		try {
+			String name = this.name.toString(event);
+	
+			// prevents e.g. {%expr%} where "%expr%" ends with "::*" from returning a Map
+			if (name.endsWith(Variable.SEPARATOR + "*") != list)
+				return null;
+			Object value = !list ? convertIfOldPlayer(name, event, Variables.getVariable(name, event, local)) : Variables.getVariable(name, event, local);
 			if (value != null)
 				return value;
+	
+			// Check for default variables if value is still null.
+			if (script != null && !ScriptLoader.hasDefaultVariables(script))
+				return null;
+			for (String typeHint : this.name.getDefaultVariableNames(name, event)) {
+				value = Variables.getVariable(typeHint, event, false);
+				if (value != null)
+					return value;
+			}
+		} finally {
+			TypeHints.exitScope(HintContext.VARIABLE_STRING);
 		}
 		return null;
 	}

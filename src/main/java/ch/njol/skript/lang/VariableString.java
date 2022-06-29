@@ -24,6 +24,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.event.Event;
 import org.eclipse.jdt.annotation.Nullable;
@@ -45,6 +46,8 @@ import ch.njol.skript.util.StringMode;
 import ch.njol.skript.util.Utils;
 import ch.njol.skript.util.chat.ChatMessages;
 import ch.njol.skript.util.chat.MessageComponent;
+import ch.njol.skript.variables.TypeHints;
+import ch.njol.skript.variables.TypeHints.HintContext;
 import ch.njol.util.Checker;
 import ch.njol.util.Kleenean;
 import ch.njol.util.StringUtils;
@@ -503,21 +506,28 @@ public class VariableString implements Expression<String> {
 		Object[] string = this.string;
 		assert string != null;
 		StringBuilder b = new StringBuilder();
+		List<Class<?>> types = new ArrayList<>();
 		for (Object o : string) {
 			if (o instanceof Expression<?>) {
-				b.append(Classes.toString(((Expression<?>) o).getArray(e), true, mode));
+				Object[] objects = ((Expression<?>) o).getArray(e);
+				if (objects != null && objects.length > 0)
+					types.add(objects[0].getClass());
+				b.append(Classes.toString(objects, true, mode));
 			} else {
 				b.append(o);
 			}
 		}
-		return b.toString();
+		String complete = b.toString();
+		if (!types.isEmpty())
+			TypeHints.add(HintContext.VARIABLE_STRING, complete, types.toArray(Class<?>[]::new));
+		return complete;
 	}
-	
+
 	@Override
 	public String toString() {
 		return toString(null, false);
 	}
-	
+
 	/**
 	 * Use {@link #toString(Event)} to get the actual string
 	 */
@@ -540,13 +550,13 @@ public class VariableString implements Expression<String> {
 		b.append('"');
 		return b.toString();
 	}
-	
+
 	/**
 	 * Builds all possible default variable type hints based on the super type of the expression.
 	 * 
 	 * @return List<String> of all possible super class code names.
 	 */
-	public List<String> getDefaultVariableNames(Event event) {
+	public List<String> getDefaultVariableNames(String variableName, Event event) {
 		if (isSimple) {
 			assert simple != null;
 			return Lists.newArrayList(simple, "object");
@@ -554,19 +564,24 @@ public class VariableString implements Expression<String> {
 		Object[] string = this.string;
 		assert string != null;
 		List<StringBuilder> typeHints = Lists.newArrayList(new StringBuilder());
+
+		// Represents the index of which expression in a variable string, example name::%entity%::%object% the index of 0 will be entity.
+		int hintIndex = 0;
 		for (Object object : string) {
 			if (!(object instanceof Expression)) {
 				typeHints.forEach(builder -> builder.append(object));
 				continue;
 			}
 			StringBuilder[] current = typeHints.toArray(StringBuilder[]::new);
-			for (ClassInfo<?> classInfo : Classes.getAllSuperClassInfos(((Expression<?>) object).getReturnType(event))) {
+			for (ClassInfo<?> classInfo : Classes.getAllSuperClassInfos(TypeHints.getForVariableString(variableName)[hintIndex])) {
 				for (StringBuilder builder : current) {
 					String hint = builder.toString() + "<" + classInfo.getCodeName() + ">";
+					Bukkit.getLogger().info(hint);
 					typeHints.add(new StringBuilder(hint));
 					typeHints.remove(builder);
 				}
 			}
+			hintIndex++;
 		}
 		return typeHints.stream().map(builder -> builder.toString()).collect(Collectors.toList());
 	}

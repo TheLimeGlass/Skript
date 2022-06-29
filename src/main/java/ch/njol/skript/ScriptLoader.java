@@ -94,6 +94,7 @@ import ch.njol.skript.util.ExceptionUtils;
 import ch.njol.skript.util.SkriptColor;
 import ch.njol.skript.util.Task;
 import ch.njol.skript.variables.TypeHints;
+import ch.njol.skript.variables.TypeHints.HintContext;
 import ch.njol.skript.variables.Variables;
 import ch.njol.util.Kleenean;
 import ch.njol.util.NonNullPair;
@@ -1147,7 +1148,7 @@ public class ScriptLoader {
 				String expr = replaceOptions("" + n.getKey());
 				if (!SkriptParser.validateLine(expr))
 					continue;
-				TypeHints.enterScope(); // Begin conditional type hints
+				TypeHints.enterScope(HintContext.RETURN_TYPE); // Begin conditional type hints
 
 				Section section = Section.parse(expr, "Can't understand this section: " + expr, (SectionNode) n, items);
 				if (section == null)
@@ -1159,7 +1160,7 @@ public class ScriptLoader {
 				items.add(section);
 
 				// Destroy these conditional type hints
-				TypeHints.exitScope();
+				TypeHints.exitScope(HintContext.RETURN_TYPE);
 			}
 		}
 		
