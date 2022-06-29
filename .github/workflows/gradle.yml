@@ -1,4 +1,4 @@
-name: Java 17 (1.17+)
+name: Java 17 (MC 1.17+)
 
 on: [push, pull_request]
 
