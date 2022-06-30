@@ -11,6 +11,9 @@ plugins {
 	id 'java'
 }
 
+sourceCompatibility = 12
+targetCompatibility = 12
+
 allprojects {
 	repositories {
 		mavenCentral()
@@ -158,13 +161,9 @@ tasks.register('testNaming') {
 // Create a test task with given name, environments dir/file and is it development mode task
 void createTestTask(String name, String environments, boolean devMode, int javaVersion) {
 	tasks.register(name) {
-		java {
-			toolchain {
-				languageVersion.set(JavaLanguageVersion.of(javaVersion))
-			}
-		}
 		// Compile Skript and check test naming
 		dependsOn jar, testNaming
+		project.targetCompatibility = javaVersion
 		doFirst {
 			javaexec {
 				if (devMode) {
@@ -196,11 +195,6 @@ createTestTask('skriptTestJava12', 'src/test/skript/environments/extra', false, 
 createTestTask('skriptTestDev', 'src/test/skript/environments/main/' + (project.property('testEnv') == null
 	? 'paper-1.19.json' : project.property('testEnv') + '.json'), true, 17)
 tasks.register('skriptTestFull') {
-	java {
-		toolchain {
-			languageVersion.set(JavaLanguageVersion.of(17))
-		}
-	}
 	dependsOn skriptTestJava12
 	doFirst {
 		javaexec {
