@@ -1338,15 +1338,6 @@ public final class BukkitEventValues {
 				return e.getFrom();
 			}
 		}, EventValues.TIME_PAST);
-		
-		Skript.registerEvent("arrow pickup", SimpleEvent.class, PlayerPickupArrowEvent.class, "arrow pickup");
-		EventValues.registerEventValue(PlayerPickupArrowEvent.class, AbstractArrow.class, new Getter<AbstractArrow, PlayerPickupArrowEvent>() {
-			@Override
-			@Nullable
-			public AbstractArrow get(PlayerPickupArrowEvent event) {
-				return event.getArrow();
-			}
-		}, EventValues.TIME_NOW, PlayerEvent.class);
 		Bukkit.getScheduler().runTaskLater(Skript.getInstance(), () -> EventValues.debug(), 1);
 	}
 }
