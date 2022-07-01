@@ -133,13 +133,13 @@ public class EventValues {
 	}
 
 	private static List<EventValueInfo<?, ?>> getEventValuesList(int time) {
-		if (time == -1)
+		if (time == TIME_PAST)
 			return pastEventValues;
-		if (time == 0)
+		if (time == TIME_NOW)
 			return defaultEventValues;
-		if (time == 1)
+		if (time == TIME_FUTURE)
 			return futureEventValues;
-		throw new IllegalArgumentException("time must be -1, 0, or 1");
+		throw new IllegalArgumentException("Time must be " + TIME_PAST + ", " + TIME_NOW + " or " + TIME_FUTURE);
 	}
 
 	/**
