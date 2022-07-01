@@ -143,18 +143,18 @@ public class EventValues {
 	}
 
 	/**
-	 * Registers an event value with default priority DEFAULT_PRIORITY and time state at present.
+	 * Registers an event value with default priority DEFAULT_PRIORITY and time state at TIME_NOW.
 	 * 
 	 * @param event the event type class.
 	 * @param type the return type of the getter for the event value.
 	 * @param getter the getter to get the value with the provided event.
 	 */
 	public static <T, E extends Event> void registerEventValue(Class<E> event, Class<T> type, Getter<T, E> getter) {
-		registerEventValue(event, type, getter, 0, DEFAULT_PRIORITY);
+		registerEventValue(event, type, getter, TIME_NOW, DEFAULT_PRIORITY);
 	}
 
 	/**
-	 * Registers an event value before other event values and time state at present.
+	 * Registers an event value before other event values and time state at TIME_NOW.
 	 * 
 	 * @param event the event type class.
 	 * @param type the return type of the getter for the event value.
@@ -162,7 +162,7 @@ public class EventValues {
 	 * @param before the other event classes to register this event value before.
 	 */
 	public static <T, E extends Event> void registerEventValue(Class<E> event, Class<T> type, Getter<T, E> getter, Class<? extends E>[] before) {
-		registerEventValue(event, type, getter, 0, before);
+		registerEventValue(event, type, getter, TIME_NOW, before);
 	}
 
 	/**
@@ -171,7 +171,7 @@ public class EventValues {
 	 * @param event the event type class.
 	 * @param type the return type of the getter for the event value.
 	 * @param getter the getter to get the value with the provided event.
-	 * @param time -1 if this is the value before the event, 1 if after, and 0 if it's the default or this value doesn't have distinct states.
+	 * @param time value of TIME_PAST if this is the value before the event, TIME_FUTURE if after, and TIME_NOW if it's the default or this value doesn't have distinct states.
 	 *            <b>Always register a default state!</b> You can leave out one of the other states instead, e.g. only register a default and a past state. The future state will
 	 *            default to the default state in this case.
 	 */
@@ -185,7 +185,7 @@ public class EventValues {
 	 * @param event the event type class.
 	 * @param type the return type of the getter for the event value.
 	 * @param getter the getter to get the value with the provided event.
-	 * @param time -1 if this is the value before the event, 1 if after, and 0 if it's the default or this value doesn't have distinct states.
+	 * @param time value of TIME_PAST if this is the value before the event, TIME_FUTURE if after, and TIME_NOW if it's the default or this value doesn't have distinct states.
 	 *            <b>Always register a default state!</b> You can leave out one of the other states instead, e.g. only register a default and a past state. The future state will
 	 *            default to the default state in this case.
 	 * @param priority the priority of this event value compared to other event values when returning as a default expression. 0 is the top of the order. Can be negative.
@@ -201,7 +201,7 @@ public class EventValues {
 	 * @param event the event type class.
 	 * @param type the return type of the getter for the event value.
 	 * @param getter the getter to get the value with the provided event.
-	 * @param time -1 if this is the value before the event, 1 if after, and 0 if it's the default or this value doesn't have distinct states.
+	 * @param time value of TIME_PAST if this is the value before the event, TIME_FUTURE if after, and TIME_NOW if it's the default or this value doesn't have distinct states.
 	 *            <b>Always register a default state!</b> You can leave out one of the other states instead, e.g. only register a default and a past state. The future state will
 	 *            default to the default state in this case.
 	 * @param after the other event classes to register this event value after.
@@ -218,7 +218,7 @@ public class EventValues {
 	 * @param event the event type class.
 	 * @param type the return type of the getter for the event value.
 	 * @param getter the getter to get the value with the provided event.
-	 * @param time -1 if this is the value before the event, 1 if after, and 0 if it's the default or this value doesn't have distinct states.
+	 * @param time value of TIME_PAST if this is the value before the event, TIME_FUTURE if after, and TIME_NOW if it's the default or this value doesn't have distinct states.
 	 *            <b>Always register a default state!</b> You can leave out one of the other states instead, e.g. only register a default and a past state. The future state will
 	 *            default to the default state in this case.
 	 * @param excludeErrorMessage The error message to display when used in the excluded events.
@@ -236,7 +236,7 @@ public class EventValues {
 	 * @param event the event type class.
 	 * @param type the return type of the getter for the event value.
 	 * @param getter the getter to get the value with the provided event.
-	 * @param time -1 if this is the value before the event, 1 if after, and 0 if it's the default or this value doesn't have distinct states.
+	 * @param time value of TIME_PAST if this is the value before the event, TIME_FUTURE if after, and TIME_NOW if it's the default or this value doesn't have distinct states.
 	 *            <b>Always register a default state!</b> You can leave out one of the other states instead, e.g. only register a default and a past state. The future state will
 	 *            default to the default state in this case.
 	 * @param after the other event classes to register this event value after.
@@ -271,7 +271,7 @@ public class EventValues {
 	 * @param event the event type class.
 	 * @param type the return type of the getter for the event value.
 	 * @param getter the getter to get the value with the provided event.
-	 * @param time -1 if this is the value before the event, 1 if after, and 0 if it's the default or this value doesn't have distinct states.
+	 * @param time value of TIME_PAST if this is the value before the event, TIME_FUTURE if after, and TIME_NOW if it's the default or this value doesn't have distinct states.
 	 *            <b>Always register a default state!</b> You can leave out one of the other states instead, e.g. only register a default and a past state. The future state will
 	 *            default to the default state in this case.
 	 * @param priority the priority of this event value compared to other event values when returning as a default expression. 0 is the top of the order. Can be negative.
@@ -310,7 +310,7 @@ public class EventValues {
 	 * 
 	 * @param event the event class the getter will be getting from
 	 * @param type return type of getter
-	 * @param time -1 if this is the value before the event, 1 if after, and 0 if it's the default or this value doesn't have distinct states.
+	 * @param time value of TIME_PAST if this is the value before the event, TIME_FUTURE if after, and TIME_NOW if it's the default or this value doesn't have distinct states.
 	 *            <b>Always register a default state!</b> You can leave out one of the other states instead, e.g. only register a default and a past state. The future state will
 	 *            default to the default state in this case.
 	 * @return The event's value
@@ -464,7 +464,7 @@ public class EventValues {
 	 * @return boolean if any event values meet the parameters and have a time state that isn't present.
 	 */
 	public static boolean doesEventValueHaveTimeStates(Class<? extends Event> event, Class<?> type) {
-		return getEventValueGetter(event, type, -1, false) != null || getEventValueGetter(event, type, 1, false) != null;
+		return getEventValueGetter(event, type, TIME_PAST, false) != null || getEventValueGetter(event, type, TIME_FUTURE, false) != null;
 	}
 
 	/**
