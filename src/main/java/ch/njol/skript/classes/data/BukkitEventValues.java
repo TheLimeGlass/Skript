@@ -31,6 +31,7 @@ import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.BlockState;
 import org.bukkit.command.CommandSender;
+import org.bukkit.entity.AbstractArrow;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Firework;
 import org.bukkit.entity.Hanging;
@@ -100,6 +101,7 @@ import org.bukkit.event.player.PlayerItemConsumeEvent;
 import org.bukkit.event.player.PlayerItemDamageEvent;
 import org.bukkit.event.player.PlayerItemMendEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
+import org.bukkit.event.player.PlayerPickupArrowEvent;
 import org.bukkit.event.player.PlayerPickupItemEvent;
 import org.bukkit.event.player.PlayerRiptideEvent;
 import org.bukkit.event.player.PlayerShearEntityEvent;
@@ -137,6 +139,7 @@ import ch.njol.skript.events.EvtMoveOn;
 import ch.njol.skript.events.bukkit.ScriptEvent;
 import ch.njol.skript.events.bukkit.SkriptStartEvent;
 import ch.njol.skript.events.bukkit.SkriptStopEvent;
+import ch.njol.skript.lang.util.SimpleEvent;
 import ch.njol.skript.registrations.EventValues;
 import ch.njol.skript.util.BlockStateBlock;
 import ch.njol.skript.util.BlockUtils;
@@ -145,11 +148,12 @@ import ch.njol.skript.util.Direction;
 import ch.njol.skript.util.Getter;
 import ch.njol.skript.util.slot.InventorySlot;
 import ch.njol.skript.util.slot.Slot;
+import ch.njol.util.coll.CollectionUtils;
 
 /**
  * @author Peter Güttinger
  */
-@SuppressWarnings("deprecation")
+@SuppressWarnings("unchecked")
 public final class BukkitEventValues {
 	
 	public BukkitEventValues() {}
@@ -158,7 +162,36 @@ public final class BukkitEventValues {
 	private static final boolean NAMESPACE_SUPPORT = Skript.classExists("org.bukkit.NamespacedKey");
 	
 	static {
-		
+		// ChunkEvents
+		EventValues.registerEventValue(ChunkEvent.class, Chunk.class, new Getter<Chunk, ChunkEvent>() {
+			@Override
+			@Nullable
+			public Chunk get(final ChunkEvent e) {
+				return e.getChunk();
+			}
+		}, EventValues.TIME_NOW, EventValues.DEFAULT_PRIORITY - 3);
+		EventValues.registerEventValue(BlockEvent.class, Block.class, new Getter<Block, BlockEvent>() {
+			@Override
+			@Nullable
+			public Block get(final BlockEvent e) {
+				return e.getBlock();
+			}
+		}, EventValues.TIME_NOW, EventValues.DEFAULT_PRIORITY / 2);
+		EventValues.registerEventValue(BlockEvent.class, World.class, new Getter<World, BlockEvent>() {
+			@Override
+			@Nullable
+			public World get(final BlockEvent e) {
+				return e.getBlock().getWorld();
+			}
+		}, EventValues.TIME_NOW, EventValues.DEFAULT_PRIORITY / 2);
+		// REMIND workaround of the event's location being at the entity in block events that have an entity event value
+		EventValues.registerEventValue(BlockEvent.class, Location.class, new Getter<Location, BlockEvent>() {
+			@Override
+			@Nullable
+			public Location get(final BlockEvent e) {
+				return BlockUtils.getLocation(e.getBlock());
+			}
+		}, EventValues.TIME_NOW, EventValues.DEFAULT_PRIORITY / 2);
 		// === WorldEvents ===
 		EventValues.registerEventValue(WorldEvent.class, World.class, new Getter<World, WorldEvent>() {
 			@Override
@@ -166,7 +199,7 @@ public final class BukkitEventValues {
 			public World get(final WorldEvent e) {
 				return e.getWorld();
 			}
-		}, 0);
+		}, EventValues.TIME_NOW, EventValues.DEFAULT_PRIORITY / 2);
 		// StructureGrowEvent - a WorldEvent
 		EventValues.registerEventValue(StructureGrowEvent.class, Block.class, new Getter<Block, StructureGrowEvent>() {
 			@Override
@@ -174,7 +207,7 @@ public final class BukkitEventValues {
 			public Block get(final StructureGrowEvent e) {
 				return e.getLocation().getBlock();
 			}
-		}, 0);
+		}, EventValues.TIME_NOW);
 		EventValues.registerEventValue(StructureGrowEvent.class, Block.class, new Getter<Block, StructureGrowEvent>() {
 			@Override
 			@Nullable
@@ -185,7 +218,7 @@ public final class BukkitEventValues {
 				}
 				return e.getLocation().getBlock();
 			}
-		}, 1);
+		}, EventValues.TIME_FUTURE);
 		// WeatherEvent - not a WorldEvent (wtf ô_Ô)
 		EventValues.registerEventValue(WeatherEvent.class, World.class, new Getter<World, WeatherEvent>() {
 			@Override
@@ -193,39 +226,7 @@ public final class BukkitEventValues {
 			public World get(final WeatherEvent e) {
 				return e.getWorld();
 			}
-		}, 0);
-		// ChunkEvents
-		EventValues.registerEventValue(ChunkEvent.class, Chunk.class, new Getter<Chunk, ChunkEvent>() {
-			@Override
-			@Nullable
-			public Chunk get(final ChunkEvent e) {
-				return e.getChunk();
-			}
-		}, 0);
-		
-		// === BlockEvents ===
-		EventValues.registerEventValue(BlockEvent.class, Block.class, new Getter<Block, BlockEvent>() {
-			@Override
-			@Nullable
-			public Block get(final BlockEvent e) {
-				return e.getBlock();
-			}
-		}, 0);
-		EventValues.registerEventValue(BlockEvent.class, World.class, new Getter<World, BlockEvent>() {
-			@Override
-			@Nullable
-			public World get(final BlockEvent e) {
-				return e.getBlock().getWorld();
-			}
-		}, 0);
-		// REMIND workaround of the event's location being at the entity in block events that have an entity event value
-		EventValues.registerEventValue(BlockEvent.class, Location.class, new Getter<Location, BlockEvent>() {
-			@Override
-			@Nullable
-			public Location get(final BlockEvent e) {
-				return BlockUtils.getLocation(e.getBlock());
-			}
-		}, 0);
+		}, EventValues.TIME_NOW);
 		// BlockPlaceEvent
 		EventValues.registerEventValue(BlockPlaceEvent.class, Player.class, new Getter<Player, BlockPlaceEvent>() {
 			@Override
@@ -233,13 +234,13 @@ public final class BukkitEventValues {
 			public Player get(final BlockPlaceEvent e) {
 				return e.getPlayer();
 			}
-		}, 0);
+		}, EventValues.TIME_NOW);
 		EventValues.registerEventValue(BlockPlaceEvent.class, Block.class, new Getter<Block, BlockPlaceEvent>() {
 			@Override
 			public Block get(final BlockPlaceEvent e) {
 				return new BlockStateBlock(e.getBlockReplacedState());
 			}
-		}, -1);
+		}, EventValues.TIME_PAST);
 		EventValues.registerEventValue(BlockPlaceEvent.class, Direction.class, new Getter<Direction, BlockPlaceEvent>() {
 			@Override
 			@Nullable
@@ -250,7 +251,7 @@ public final class BukkitEventValues {
 				}
 				return Direction.ZERO;
 			}
-		}, 0);
+		}, EventValues.TIME_NOW);
 		// BlockFadeEvent
 		EventValues.registerEventValue(BlockFadeEvent.class, Block.class, new Getter<Block, BlockFadeEvent>() {
 			@Override
@@ -258,19 +259,19 @@ public final class BukkitEventValues {
 			public Block get(final BlockFadeEvent e) {
 				return e.getBlock();
 			}
-		}, -1);
+		}, EventValues.TIME_PAST);
 		EventValues.registerEventValue(BlockFadeEvent.class, Block.class, new Getter<Block, BlockFadeEvent>() {
 			@Override
 			public Block get(final BlockFadeEvent e) {
 				return new DelayedChangeBlock(e.getBlock(), e.getNewState());
 			}
-		}, 0);
+		}, EventValues.TIME_NOW);
 		EventValues.registerEventValue(BlockFadeEvent.class, Block.class, new Getter<Block, BlockFadeEvent>() {
 			@Override
 			public Block get(final BlockFadeEvent e) {
 				return new BlockStateBlock(e.getNewState());
 			}
-		}, 1);
+		}, EventValues.TIME_FUTURE);
 		// BlockGrowEvent (+ BlockFormEvent)
 		EventValues.registerEventValue(BlockGrowEvent.class, Block.class, new Getter<Block, BlockGrowEvent>() {
 			@Override
@@ -280,14 +281,14 @@ public final class BukkitEventValues {
 					return e.getBlock();
 				return new BlockStateBlock(e.getNewState());
 			}
-		}, 0);
+		}, EventValues.TIME_NOW);
 		EventValues.registerEventValue(BlockGrowEvent.class, Block.class, new Getter<Block, BlockGrowEvent>() {
 			@Override
 			@Nullable
 			public Block get(final BlockGrowEvent e) {
 				return e.getBlock();
 			}
-		}, -1);
+		}, EventValues.TIME_PAST);
 		// BlockDamageEvent
 		EventValues.registerEventValue(BlockDamageEvent.class, Player.class, new Getter<Player, BlockDamageEvent>() {
 			@Override
@@ -295,28 +296,28 @@ public final class BukkitEventValues {
 			public Player get(final BlockDamageEvent e) {
 				return e.getPlayer();
 			}
-		}, 0);
-		// BlockBreakEvent
+		}, EventValues.TIME_NOW);
+		// BlockBreakEventValues.TIME_NOWvent
 		EventValues.registerEventValue(BlockBreakEvent.class, Player.class, new Getter<Player, BlockBreakEvent>() {
 			@Override
 			@Nullable
 			public Player get(final BlockBreakEvent e) {
 				return e.getPlayer();
 			}
-		}, 0);
+		}, EventValues.TIME_NOW);
 		EventValues.registerEventValue(BlockBreakEvent.class, Block.class, new Getter<Block, BlockBreakEvent>() {
 			@Override
 			@Nullable
 			public Block get(final BlockBreakEvent e) {
 				return e.getBlock();
 			}
-		}, -1);
+		}, EventValues.TIME_PAST);
 		EventValues.registerEventValue(BlockBreakEvent.class, Block.class, new Getter<Block, BlockBreakEvent>() {
 			@Override
 			public Block get(final BlockBreakEvent e) {
 				return new DelayedChangeBlock(e.getBlock());
 			}
-		}, 0);
+		}, EventValues.TIME_NOW);
 		ItemType stationaryWater = Aliases.javaItemType("stationary water");
 		EventValues.registerEventValue(BlockBreakEvent.class, Block.class, new Getter<Block, BlockBreakEvent>() {
 			@Override
@@ -326,7 +327,7 @@ public final class BukkitEventValues {
 				s.setRawData((byte) 0);
 				return new BlockStateBlock(s, true);
 			}
-		}, 1);
+		}, EventValues.TIME_FUTURE);
 		// BlockFromToEvent
 		EventValues.registerEventValue(BlockFromToEvent.class, Block.class, new Getter<Block, BlockFromToEvent>() {
 			@Override
@@ -334,7 +335,7 @@ public final class BukkitEventValues {
 			public Block get(final BlockFromToEvent e) {
 				return e.getToBlock();
 			}
-		}, 1);
+		}, EventValues.TIME_FUTURE);
 		// BlockIgniteEvent
 		EventValues.registerEventValue(BlockIgniteEvent.class, Player.class, new Getter<Player, BlockIgniteEvent>() {
 			@Override
@@ -342,14 +343,14 @@ public final class BukkitEventValues {
 			public Player get(final BlockIgniteEvent e) {
 				return e.getPlayer();
 			}
-		}, 0);
+		}, EventValues.TIME_NOW);
 		EventValues.registerEventValue(BlockIgniteEvent.class, Block.class, new Getter<Block, BlockIgniteEvent>() {
 			@Override
 			@Nullable
 			public Block get(final BlockIgniteEvent e) {
 				return e.getIgnitingBlock();
 			}
-		}, 0);
+		}, EventValues.TIME_NOW);
 		// BlockDispenseEvent
 		EventValues.registerEventValue(BlockDispenseEvent.class, ItemType.class, new Getter<ItemType, BlockDispenseEvent>() {
 			@Override
@@ -357,7 +358,7 @@ public final class BukkitEventValues {
 			public ItemType get(final BlockDispenseEvent e) {
 				return new ItemType(e.getItem());
 			}
-		}, 0);
+		}, EventValues.TIME_NOW);
 		// BlockCanBuildEvent
 		EventValues.registerEventValue(BlockCanBuildEvent.class, Block.class, new Getter<Block, BlockCanBuildEvent>() {
 			@Override
@@ -365,7 +366,7 @@ public final class BukkitEventValues {
 			public Block get(final BlockCanBuildEvent e) {
 				return e.getBlock();
 			}
-		}, -1);
+		}, EventValues.TIME_PAST);
 		EventValues.registerEventValue(BlockCanBuildEvent.class, Block.class, new Getter<Block, BlockCanBuildEvent>() {
 			@Override
 			public Block get(final BlockCanBuildEvent e) {
@@ -373,7 +374,7 @@ public final class BukkitEventValues {
 				s.setType(e.getMaterial());
 				return new BlockStateBlock(s, true);
 			}
-		}, 0);
+		}, EventValues.TIME_NOW);
 		// BlockCanBuildEvent#getPlayer was added in 1.13
 		if (Skript.methodExists(BlockCanBuildEvent.class, "getPlayer")) {
 			EventValues.registerEventValue(BlockCanBuildEvent.class, Player.class, new Getter<Player, BlockCanBuildEvent>() {
@@ -382,7 +383,7 @@ public final class BukkitEventValues {
 				public Player get(final BlockCanBuildEvent e) {
 					return e.getPlayer();
 				}
-			}, 0);
+			}, EventValues.TIME_NOW);
 		}
 		// SignChangeEvent
 		EventValues.registerEventValue(SignChangeEvent.class, Player.class, new Getter<Player, SignChangeEvent>() {
@@ -391,7 +392,7 @@ public final class BukkitEventValues {
 			public Player get(final SignChangeEvent e) {
 				return e.getPlayer();
 			}
-		}, 0);
+		}, EventValues.TIME_NOW);
 		
 		// === EntityEvents ===
 		EventValues.registerEventValue(EntityEvent.class, Entity.class, new Getter<Entity, EntityEvent>() {
@@ -400,28 +401,28 @@ public final class BukkitEventValues {
 			public Entity get(final EntityEvent e) {
 				return e.getEntity();
 			}
-		}, 0, "Use 'attacker' and/or 'victim' in damage/death events", EntityDamageEvent.class, EntityDeathEvent.class);
+		}, EventValues.TIME_NOW, EventValues.DEFAULT_PRIORITY / 2, "Use 'attacker' and/or 'victim' in damage/death events", EntityDamageEvent.class, EntityDeathEvent.class);
 		EventValues.registerEventValue(EntityEvent.class, CommandSender.class, new Getter<CommandSender, EntityEvent>() {
 			@Override
 			@Nullable
 			public CommandSender get(final EntityEvent e) {
 				return e.getEntity();
 			}
-		}, 0, "Use 'attacker' and/or 'victim' in damage/death events", EntityDamageEvent.class, EntityDeathEvent.class);
+		}, EventValues.TIME_NOW, EventValues.DEFAULT_PRIORITY / 2, "Use 'attacker' and/or 'victim' in damage/death events", EntityDamageEvent.class, EntityDeathEvent.class);
 		EventValues.registerEventValue(EntityEvent.class, World.class, new Getter<World, EntityEvent>() {
 			@Override
 			@Nullable
 			public World get(final EntityEvent e) {
 				return e.getEntity().getWorld();
 			}
-		}, 0);
+		}, EventValues.TIME_NOW, EventValues.DEFAULT_PRIORITY / 2);
 		EventValues.registerEventValue(EntityEvent.class, Location.class, new Getter<Location, EntityEvent>() {
 			@Override
 			@Nullable
 			public Location get(final EntityEvent e) {
 				return e.getEntity().getLocation();
 			}
-		}, 0);
+		}, EventValues.TIME_NOW, EventValues.DEFAULT_PRIORITY / 2);
 		// EntityDamageEvent
 		EventValues.registerEventValue(EntityDamageEvent.class, DamageCause.class, new Getter<DamageCause, EntityDamageEvent>() {
 			@Override
@@ -429,7 +430,7 @@ public final class BukkitEventValues {
 			public DamageCause get(final EntityDamageEvent e) {
 				return e.getCause();
 			}
-		}, 0);
+		}, EventValues.TIME_NOW);
 		EventValues.registerEventValue(EntityDamageByEntityEvent.class, Projectile.class, new Getter<Projectile, EntityDamageByEntityEvent>() {
 			@Override
 			@Nullable
@@ -438,7 +439,7 @@ public final class BukkitEventValues {
 					return (Projectile) e.getDamager();
 				return null;
 			}
-		}, 0);
+		}, EventValues.TIME_NOW);
 		// EntityDeathEvent
 		EventValues.registerEventValue(EntityDeathEvent.class, Projectile.class, new Getter<Projectile, EntityDeathEvent>() {
 			@Override
@@ -449,7 +450,7 @@ public final class BukkitEventValues {
 					return (Projectile) ((EntityDamageByEntityEvent) ldc).getDamager();
 				return null;
 			}
-		}, 0);
+		}, EventValues.TIME_NOW);
 		EventValues.registerEventValue(EntityDeathEvent.class, DamageCause.class, new Getter<DamageCause, EntityDeathEvent>() {
 			@Override
 			@Nullable
@@ -457,7 +458,7 @@ public final class BukkitEventValues {
 				final EntityDamageEvent ldc = e.getEntity().getLastDamageCause();
 				return ldc == null ? null : ldc.getCause();
 			}
-		}, 0);
+		}, EventValues.TIME_NOW);
 		// ProjectileHitEvent
 		// ProjectileHitEvent#getHitBlock was added in 1.11
 		if(Skript.methodExists(ProjectileHitEvent.class, "getHitBlock"))
@@ -467,7 +468,7 @@ public final class BukkitEventValues {
 				public Block get(ProjectileHitEvent e) {
 					return e.getHitBlock();
 				}
-			}, 0);
+			}, EventValues.TIME_NOW);
 		EventValues.registerEventValue(ProjectileHitEvent.class, Entity.class, new Getter<Entity, ProjectileHitEvent>() {
 			@Override
 			@Nullable
@@ -475,14 +476,14 @@ public final class BukkitEventValues {
 				assert false;
 				return e.getEntity();
 			}
-		}, 0, "Use 'projectile' and/or 'shooter' in projectile hit events", ProjectileHitEvent.class);
+		}, EventValues.TIME_NOW, "Use 'projectile' and/or 'shooter' in projectile hit events", ProjectileHitEvent.class);
 		EventValues.registerEventValue(ProjectileHitEvent.class, Projectile.class, new Getter<Projectile, ProjectileHitEvent>() {
 			@Override
 			@Nullable
 			public Projectile get(final ProjectileHitEvent e) {
 				return e.getEntity();
 			}
-		}, 0);
+		}, EventValues.TIME_NOW);
 		if (Skript.methodExists(ProjectileHitEvent.class, "getHitBlockFace")) {
 			EventValues.registerEventValue(ProjectileHitEvent.class, Direction.class, new Getter<Direction, ProjectileHitEvent>() {
 				@Override
@@ -492,7 +493,7 @@ public final class BukkitEventValues {
 					if (theHitFace == null) return null;
 					return new Direction(theHitFace, 1);
 				}
-			}, 0);
+			}, EventValues.TIME_NOW);
 		}
 		// ProjectileLaunchEvent
 		EventValues.registerEventValue(ProjectileLaunchEvent.class, Entity.class, new Getter<Entity, ProjectileLaunchEvent>() {
@@ -502,7 +503,7 @@ public final class BukkitEventValues {
 				assert false;
 				return e.getEntity();
 			}
-		}, 0, "Use 'projectile' and/or 'shooter' in shoot events", ProjectileLaunchEvent.class);
+		}, EventValues.TIME_NOW, "Use 'projectile' and/or 'shooter' in shoot events", ProjectileLaunchEvent.class);
 		//ProjectileCollideEvent
 		if (Skript.classExists("com.destroystokyo.paper.event.entity.ProjectileCollideEvent")) {
 			EventValues.registerEventValue(ProjectileCollideEvent.class, Projectile.class, new Getter<Projectile, ProjectileCollideEvent>() {
@@ -511,14 +512,14 @@ public final class BukkitEventValues {
 				public Projectile get(ProjectileCollideEvent evt) {
 					return evt.getEntity();
 				}
-			}, 0);
+			}, EventValues.TIME_NOW);
 			EventValues.registerEventValue(ProjectileCollideEvent.class, Entity.class, new Getter<Entity, ProjectileCollideEvent>() {
 				@Nullable
 				@Override
 				public Entity get(ProjectileCollideEvent evt) {
 					return evt.getCollidedWith();
 				}
-			}, 0);
+			}, EventValues.TIME_NOW);
 		}
 		EventValues.registerEventValue(ProjectileLaunchEvent.class, Projectile.class, new Getter<Projectile, ProjectileLaunchEvent>() {
 			@Override
@@ -526,7 +527,7 @@ public final class BukkitEventValues {
 			public Projectile get(final ProjectileLaunchEvent e) {
 				return e.getEntity();
 			}
-		}, 0);
+		}, EventValues.TIME_NOW);
 		// EntityTameEvent
 		EventValues.registerEventValue(EntityTameEvent.class, Entity.class, new Getter<Entity, EntityTameEvent>() {
 			@Override
@@ -534,7 +535,7 @@ public final class BukkitEventValues {
 			public Entity get(final EntityTameEvent e) {
 				return e.getEntity();
 			}
-		}, 0);
+		}, EventValues.TIME_NOW);
 		// EntityChangeBlockEvent
 		EventValues.registerEventValue(EntityChangeBlockEvent.class, Block.class, new Getter<Block, EntityChangeBlockEvent>() {
 			@Override
@@ -542,7 +543,7 @@ public final class BukkitEventValues {
 			public Block get(final EntityChangeBlockEvent e) {
 				return e.getBlock();
 			}
-		}, 0);
+		}, EventValues.TIME_NOW);
 		if (Skript.classExists("org.bukkit.event.entity.AreaEffectCloudApplyEvent")) {
 			EventValues.registerEventValue(AreaEffectCloudApplyEvent.class, PotionEffectType.class, new Getter<PotionEffectType, AreaEffectCloudApplyEvent>() {
 				@Override
@@ -550,7 +551,7 @@ public final class BukkitEventValues {
 				public PotionEffectType get(AreaEffectCloudApplyEvent e) {
 					return e.getEntity().getBasePotionData().getType().getEffectType(); // Whoops this is a bit long call...
 				}
-			}, 0);
+			}, EventValues.TIME_NOW);
 		}
 		// ItemSpawnEvent
 		EventValues.registerEventValue(ItemSpawnEvent.class, ItemType.class, new Getter<ItemType, ItemSpawnEvent>() {
@@ -559,14 +560,14 @@ public final class BukkitEventValues {
 			public ItemType get(final ItemSpawnEvent e) {
 				return new ItemType(e.getEntity().getItemStack());
 			}
-		}, 0);
+		}, EventValues.TIME_NOW);
 		// LightningStrikeEvent
 		EventValues.registerEventValue(LightningStrikeEvent.class, Entity.class, new Getter<Entity, LightningStrikeEvent>() {
 			@Override
 			public Entity get(LightningStrikeEvent event) {
 				return event.getLightning();
 			}
-		}, 0);
+		}, EventValues.TIME_NOW);
 		
 		// --- PlayerEvents ---
 		EventValues.registerEventValue(PlayerEvent.class, Player.class, new Getter<Player, PlayerEvent>() {
@@ -575,14 +576,14 @@ public final class BukkitEventValues {
 			public Player get(final PlayerEvent e) {
 				return e.getPlayer();
 			}
-		}, 0);
+		}, EventValues.TIME_NOW, (EventValues.DEFAULT_PRIORITY / 2) - 1);
 		EventValues.registerEventValue(PlayerEvent.class, World.class, new Getter<World, PlayerEvent>() {
 			@Override
 			@Nullable
 			public World get(final PlayerEvent e) {
 				return e.getPlayer().getWorld();
 			}
-		}, 0);
+		}, EventValues.TIME_NOW, (EventValues.DEFAULT_PRIORITY / 2) - 1);
 		// PlayerBedEnterEvent
 		EventValues.registerEventValue(PlayerBedEnterEvent.class, Block.class, new Getter<Block, PlayerBedEnterEvent>() {
 			@Override
@@ -590,7 +591,7 @@ public final class BukkitEventValues {
 			public Block get(final PlayerBedEnterEvent e) {
 				return e.getBed();
 			}
-		}, 0);
+		}, EventValues.TIME_NOW);
 		// PlayerBedLeaveEvent
 		EventValues.registerEventValue(PlayerBedLeaveEvent.class, Block.class, new Getter<Block, PlayerBedLeaveEvent>() {
 			@Override
@@ -598,7 +599,7 @@ public final class BukkitEventValues {
 			public Block get(final PlayerBedLeaveEvent e) {
 				return e.getBed();
 			}
-		}, 0);
+		}, EventValues.TIME_NOW);
 		// PlayerBucketEvents
 		EventValues.registerEventValue(PlayerBucketFillEvent.class, Block.class, new Getter<Block, PlayerBucketFillEvent>() {
 			@Override
@@ -606,7 +607,7 @@ public final class BukkitEventValues {
 			public Block get(final PlayerBucketFillEvent e) {
 				return e.getBlockClicked().getRelative(e.getBlockFace());
 			}
-		}, 0);
+		}, EventValues.TIME_NOW);
 		EventValues.registerEventValue(PlayerBucketFillEvent.class, Block.class, new Getter<Block, PlayerBucketFillEvent>() {
 			@Override
 			@Nullable
@@ -616,14 +617,14 @@ public final class BukkitEventValues {
 				s.setRawData((byte) 0);
 				return new BlockStateBlock(s, true);
 			}
-		}, 1);
+		}, EventValues.TIME_FUTURE);
 		EventValues.registerEventValue(PlayerBucketEmptyEvent.class, Block.class, new Getter<Block, PlayerBucketEmptyEvent>() {
 			@Override
 			@Nullable
 			public Block get(final PlayerBucketEmptyEvent e) {
 				return e.getBlockClicked().getRelative(e.getBlockFace());
 			}
-		}, -1);
+		}, EventValues.TIME_PAST);
 		ItemType stationaryLava = Aliases.javaItemType("stationary lava");
 		EventValues.registerEventValue(PlayerBucketEmptyEvent.class, Block.class, new Getter<Block, PlayerBucketEmptyEvent>() {
 			@Override
@@ -633,7 +634,7 @@ public final class BukkitEventValues {
 				s.setRawData((byte) 0);
 				return new BlockStateBlock(s, true);
 			}
-		}, 0);
+		}, EventValues.TIME_NOW);
 		// PlayerDropItemEvent
 		EventValues.registerEventValue(PlayerDropItemEvent.class, Player.class, new Getter<Player, PlayerDropItemEvent>() {
 			@Override
@@ -641,21 +642,21 @@ public final class BukkitEventValues {
 			public Player get(PlayerDropItemEvent e) {
 				return e.getPlayer();
 			}
-		}, 0);
+		}, EventValues.TIME_NOW);
 		EventValues.registerEventValue(PlayerDropItemEvent.class, Item.class, new Getter<Item, PlayerDropItemEvent>() {
 			@Override
 			@Nullable
 			public Item get(final PlayerDropItemEvent e) {
 				return e.getItemDrop();
 			}
-		}, 0);
+		}, EventValues.TIME_NOW);
 		EventValues.registerEventValue(PlayerDropItemEvent.class, ItemType.class, new Getter<ItemType, PlayerDropItemEvent>() {
 			@Override
 			@Nullable
 			public ItemType get(final PlayerDropItemEvent e) {
 				return new ItemType(e.getItemDrop().getItemStack());
 			}
-		}, 0);
+		}, EventValues.TIME_NOW);
 		// PlayerPickupItemEvent
 		EventValues.registerEventValue(PlayerPickupItemEvent.class, Player.class, new Getter<Player, PlayerPickupItemEvent>() {
 			@Override
@@ -663,21 +664,21 @@ public final class BukkitEventValues {
 			public Player get(PlayerPickupItemEvent e) {
 				return e.getPlayer();
 			}
-		}, 0);
+		}, EventValues.TIME_NOW);
 		EventValues.registerEventValue(PlayerPickupItemEvent.class, Item.class, new Getter<Item, PlayerPickupItemEvent>() {
 			@Override
 			@Nullable
 			public Item get(final PlayerPickupItemEvent e) {
 				return e.getItem();
 			}
-		}, 0);
+		}, EventValues.TIME_NOW);
 		EventValues.registerEventValue(PlayerPickupItemEvent.class, ItemType.class, new Getter<ItemType, PlayerPickupItemEvent>() {
 			@Override
 			@Nullable
 			public ItemType get(final PlayerPickupItemEvent e) {
 				return new ItemType(e.getItem().getItemStack());
 			}
-		}, 0);
+		}, EventValues.TIME_NOW);
 		// EntityPickupItemEvent
 		if (Skript.classExists("org.bukkit.event.entity.EntityPickupItemEvent")) {
 			EventValues.registerEventValue(EntityPickupItemEvent.class, Entity.class, new Getter<Entity, EntityPickupItemEvent>() {
@@ -685,21 +686,21 @@ public final class BukkitEventValues {
 				public @Nullable Entity get(EntityPickupItemEvent e) {
 					return e.getEntity();
 				}
-			}, 0);
+			}, EventValues.TIME_NOW);
 			EventValues.registerEventValue(EntityPickupItemEvent.class, Item.class, new Getter<Item, EntityPickupItemEvent>() {
 				@Override
 				@Nullable
 				public Item get(final EntityPickupItemEvent e) {
 					return e.getItem();
 				}
-			}, 0);
+			}, EventValues.TIME_NOW);
 			EventValues.registerEventValue(EntityPickupItemEvent.class, ItemType.class, new Getter<ItemType, EntityPickupItemEvent>() {
 				@Override
 				@Nullable
 				public ItemType get(final EntityPickupItemEvent e) {
 					return new ItemType(e.getItem().getItemStack());
 				}
-			}, 0);
+			}, EventValues.TIME_NOW);
 		}
 		// PlayerItemConsumeEvent
 		if (Skript.supports("org.bukkit.event.player.PlayerItemConsumeEvent")) {
@@ -709,7 +710,7 @@ public final class BukkitEventValues {
 				public ItemType get(final PlayerItemConsumeEvent e) {
 					return new ItemType(e.getItem());
 				}
-			}, 0);
+			}, EventValues.TIME_NOW);
 		}
 		// PlayerItemBreakEvent
 		if (Skript.supports("org.bukkit.event.player.PlayerItemBreakEvent")) {
@@ -719,7 +720,7 @@ public final class BukkitEventValues {
 				public ItemType get(final PlayerItemBreakEvent e) {
 					return new ItemType(e.getBrokenItem());
 				}
-			}, 0);
+			}, EventValues.TIME_NOW);
 		}
 		// PlayerInteractEntityEvent
 		EventValues.registerEventValue(PlayerInteractEntityEvent.class, Entity.class, new Getter<Entity, PlayerInteractEntityEvent>() {
@@ -728,7 +729,7 @@ public final class BukkitEventValues {
 			public Entity get(final PlayerInteractEntityEvent e) {
 				return e.getRightClicked();
 			}
-		}, 0);
+		}, EventValues.TIME_NOW);
 		EventValues.registerEventValue(PlayerInteractEntityEvent.class, ItemType.class, new Getter<ItemType, PlayerInteractEntityEvent>() {
 			@Override
 			@Nullable
@@ -745,7 +746,7 @@ public final class BukkitEventValues {
 					return new ItemType(e.getPlayer().getItemInHand());
 				}
 			}
-		}, 0);
+		}, EventValues.TIME_NOW);
 		// PlayerInteractEvent
 		EventValues.registerEventValue(PlayerInteractEvent.class, ItemType.class, new Getter<ItemType, PlayerInteractEvent>() {
 			@Override
@@ -754,21 +755,21 @@ public final class BukkitEventValues {
 				ItemStack item = e.getItem();
 				return item == null ? null : new ItemType(item);
 			}
-		}, 0);
+		}, EventValues.TIME_NOW);
 		EventValues.registerEventValue(PlayerInteractEvent.class, Block.class, new Getter<Block, PlayerInteractEvent>() {
 			@Override
 			@Nullable
 			public Block get(final PlayerInteractEvent e) {
 				return e.getClickedBlock();
 			}
-		}, 0);
+		}, EventValues.TIME_NOW);
 		EventValues.registerEventValue(PlayerInteractEvent.class, Direction.class, new Getter<Direction, PlayerInteractEvent>() {
 			@Override
 			@Nullable
 			public Direction get(final PlayerInteractEvent e) {
 				return new Direction(new double[] {e.getBlockFace().getModX(), e.getBlockFace().getModY(), e.getBlockFace().getModZ()});
 			}
-		}, 0);
+		}, EventValues.TIME_NOW);
 		// PlayerShearEntityEvent
 		EventValues.registerEventValue(PlayerShearEntityEvent.class, Entity.class, new Getter<Entity, PlayerShearEntityEvent>() {
 			@Override
@@ -776,7 +777,7 @@ public final class BukkitEventValues {
 			public Entity get(final PlayerShearEntityEvent e) {
 				return e.getEntity();
 			}
-		}, 0);
+		}, EventValues.TIME_NOW);
 		// PlayerMoveEvent
 		EventValues.registerEventValue(PlayerMoveEvent.class, Block.class, new Getter<Block, PlayerMoveEvent>() {
 			@Override
@@ -784,14 +785,14 @@ public final class BukkitEventValues {
 			public Block get(final PlayerMoveEvent e) {
 				return EvtMoveOn.getBlock(e);
 			}
-		}, 0);
+		}, EventValues.TIME_NOW);
 		// PlayerItemDamageEvent
 		EventValues.registerEventValue(PlayerItemDamageEvent.class, ItemType.class, new Getter<ItemType, PlayerItemDamageEvent>() {
 			@Override
 			public ItemType get(PlayerItemDamageEvent event) {
 				return new ItemType(event.getItem());
 			}
-		}, 0);
+		}, EventValues.TIME_NOW);
 		//PlayerItemMendEvent
 		if (Skript.classExists("org.bukkit.event.player.PlayerItemMendEvent")) {
 			EventValues.registerEventValue(PlayerItemMendEvent.class, Player.class, new Getter<Player, PlayerItemMendEvent>() {
@@ -800,21 +801,21 @@ public final class BukkitEventValues {
 				public Player get(PlayerItemMendEvent e) {
 					return e.getPlayer();
 				}
-			}, 0);
+			}, EventValues.TIME_NOW);
 			EventValues.registerEventValue(PlayerItemMendEvent.class, ItemType.class, new Getter<ItemType, PlayerItemMendEvent>() {
 				@Override
 				@Nullable
 				public ItemType get(PlayerItemMendEvent e) {
 					return new ItemType(e.getItem());
 				}
-			}, 0);
+			}, EventValues.TIME_NOW);
 			EventValues.registerEventValue(PlayerItemMendEvent.class, Entity.class, new Getter<Entity, PlayerItemMendEvent>() {
 				@Override
 				@Nullable
 				public Entity get(PlayerItemMendEvent e) {
 					return e.getExperienceOrb();
 				}
-			}, 0);
+			}, EventValues.TIME_NOW);
 		}
 		
 		// --- HangingEvents ---
@@ -826,21 +827,21 @@ public final class BukkitEventValues {
 			public Hanging get(final HangingEvent e) {
 				return e.getEntity();
 			}
-		}, 0);
+		}, EventValues.TIME_NOW);
 		EventValues.registerEventValue(HangingEvent.class, World.class, new Getter<World, HangingEvent>() {
 			@Override
 			@Nullable
 			public World get(final HangingEvent e) {
 				return e.getEntity().getWorld();
 			}
-		}, 0);
+		}, EventValues.TIME_NOW);
 		EventValues.registerEventValue(HangingEvent.class, Location.class, new Getter<Location, HangingEvent>() {
 			@Override
 			@Nullable
 			public Location get(final HangingEvent e) {
 				return e.getEntity().getLocation();
 			}
-		}, 0);
+		}, EventValues.TIME_NOW);
 			
 		// HangingBreakEvent
 		EventValues.registerEventValue(HangingBreakEvent.class, Entity.class, new Getter<Entity, HangingBreakEvent>() {
@@ -851,7 +852,7 @@ public final class BukkitEventValues {
 					return ((HangingBreakByEntityEvent) e).getRemover();
 				return null;
 			}
-		}, 0);
+		}, EventValues.TIME_NOW);
 		// HangingPlaceEvent
 		EventValues.registerEventValue(HangingPlaceEvent.class, Player.class, new Getter<Player, HangingPlaceEvent>() {
 			@Override
@@ -859,7 +860,7 @@ public final class BukkitEventValues {
 			public Player get(final HangingPlaceEvent e) {
 				return e.getPlayer();
 			}
-		}, 0);
+		}, EventValues.TIME_NOW);
 		
 		// --- VehicleEvents ---
 		EventValues.registerEventValue(VehicleEvent.class, Vehicle.class, new Getter<Vehicle, VehicleEvent>() {
@@ -868,21 +869,21 @@ public final class BukkitEventValues {
 			public Vehicle get(final VehicleEvent e) {
 				return e.getVehicle();
 			}
-		}, 0);
+		}, EventValues.TIME_NOW);
 		EventValues.registerEventValue(VehicleEvent.class, World.class, new Getter<World, VehicleEvent>() {
 			@Override
 			@Nullable
 			public World get(final VehicleEvent e) {
 				return e.getVehicle().getWorld();
 			}
-		}, 0);
+		}, EventValues.TIME_NOW);
 		EventValues.registerEventValue(VehicleExitEvent.class, LivingEntity.class, new Getter<LivingEntity, VehicleExitEvent>() {
 			@Override
 			@Nullable
 			public LivingEntity get(final VehicleExitEvent e) {
 				return e.getExited();
 			}
-		}, 0);
+		}, EventValues.TIME_NOW);
 		
 		EventValues.registerEventValue(VehicleEnterEvent.class, Entity.class, new Getter<Entity, VehicleEnterEvent>() {
 			@Nullable
@@ -890,7 +891,7 @@ public final class BukkitEventValues {
 			public Entity get(VehicleEnterEvent e) {
 				return e.getEntered();
 			}
-		}, 0);
+		}, EventValues.TIME_NOW);
 		
 		// We could error here instead but it's preferable to not do it in this case
 		EventValues.registerEventValue(VehicleDamageEvent.class, Entity.class, new Getter<Entity, VehicleDamageEvent>() {
@@ -899,7 +900,7 @@ public final class BukkitEventValues {
 			public Entity get(VehicleDamageEvent e) {
 				return e.getAttacker();
 			}
-		}, 0);
+		}, EventValues.TIME_NOW);
 		
 		EventValues.registerEventValue(VehicleDestroyEvent.class, Entity.class, new Getter<Entity, VehicleDestroyEvent>() {
 			@Nullable
@@ -907,7 +908,7 @@ public final class BukkitEventValues {
 			public Entity get(VehicleDestroyEvent e) {
 				return e.getAttacker();
 			}
-		}, 0);
+		}, EventValues.TIME_NOW);
 		
 		EventValues.registerEventValue(VehicleEvent.class, Entity.class, new Getter<Entity, VehicleEvent>() {
 			@Override
@@ -915,7 +916,7 @@ public final class BukkitEventValues {
 			public Entity get(final VehicleEvent e) {
 				return e.getVehicle().getPassenger();
 			}
-		}, 0);
+		}, EventValues.TIME_NOW);
 		
 		
 		// === CommandEvents ===
@@ -926,20 +927,20 @@ public final class BukkitEventValues {
 			public CommandSender get(final ServerCommandEvent e) {
 				return e.getSender();
 			}
-		}, 0);
+		}, EventValues.TIME_NOW);
 		EventValues.registerEventValue(CommandEvent.class, CommandSender.class, new Getter<CommandSender, CommandEvent>() {
 			@Override
 			public CommandSender get(final CommandEvent e) {
 				return e.getSender();
 			}
-		}, 0);
+		}, EventValues.TIME_NOW);
 		EventValues.registerEventValue(CommandEvent.class, World.class, new Getter<World, CommandEvent>() {
 			@Override
 			@Nullable
 			public World get(final CommandEvent e) {
 				return e.getSender() instanceof Player ? ((Player) e.getSender()).getWorld() : null;
 			}
-		}, 0);
+		}, EventValues.TIME_NOW);
 		
 		// === ServerEvents ===
 		// Script load/unload event
@@ -949,7 +950,7 @@ public final class BukkitEventValues {
 			public CommandSender get(ScriptEvent e) {
 				return Bukkit.getConsoleSender();
 			}
-		}, 0);
+		}, EventValues.TIME_NOW);
 		// Server load event
 		EventValues.registerEventValue(SkriptStartEvent.class, CommandSender.class, new Getter<CommandSender, SkriptStartEvent>() {
 			@Nullable
@@ -957,7 +958,7 @@ public final class BukkitEventValues {
 			public CommandSender get(SkriptStartEvent e) {
 				return Bukkit.getConsoleSender();
 			}
-		}, 0);
+		}, EventValues.TIME_NOW);
 		// Server stop event
 		EventValues.registerEventValue(SkriptStopEvent.class, CommandSender.class, new Getter<CommandSender, SkriptStopEvent>() {
 			@Nullable
@@ -965,7 +966,7 @@ public final class BukkitEventValues {
 			public CommandSender get(SkriptStopEvent e) {
 				return Bukkit.getConsoleSender();
 			}
-		}, 0);
+		}, EventValues.TIME_NOW);
 		
 		// === InventoryEvents ===
 		// InventoryClickEvent
@@ -975,14 +976,14 @@ public final class BukkitEventValues {
 			public Player get(final InventoryClickEvent e) {
 				return e.getWhoClicked() instanceof Player ? (Player) e.getWhoClicked() : null;
 			}
-		}, 0);
+		}, EventValues.TIME_NOW);
 		EventValues.registerEventValue(InventoryClickEvent.class, World.class, new Getter<World, InventoryClickEvent>() {
 			@Override
 			@Nullable
 			public World get(final InventoryClickEvent e) {
 				return e.getWhoClicked().getWorld();
 			}
-		}, 0);
+		}, EventValues.TIME_NOW);
 		EventValues.registerEventValue(InventoryClickEvent.class, ItemType.class, new Getter<ItemType, InventoryClickEvent>() {
 			@Override
 			@Nullable
@@ -992,7 +993,7 @@ public final class BukkitEventValues {
 				ItemStack item = e.getCurrentItem();
 				return item == null ? null : new ItemType(item);
 			}
-		}, 0);
+		}, EventValues.TIME_NOW);
 		EventValues.registerEventValue(InventoryClickEvent.class, Slot.class, new Getter<Slot, InventoryClickEvent>() {
 			@SuppressWarnings("null")
 			@Override
@@ -1008,37 +1009,37 @@ public final class BukkitEventValues {
 					return new InventorySlot(invi, slotIndex);
 				}
 			}
-		}, 0);
+		}, EventValues.TIME_NOW);
 		EventValues.registerEventValue(InventoryClickEvent.class, InventoryAction.class, new Getter<InventoryAction, InventoryClickEvent>() {
 			@Override
 			@Nullable
 			public InventoryAction get(final InventoryClickEvent e) {
 				return e.getAction();
 			}
-		}, 0);
+		}, EventValues.TIME_NOW);
 		EventValues.registerEventValue(InventoryClickEvent.class, ClickType.class, new Getter<ClickType, InventoryClickEvent>() {
 			@Override
 			@Nullable
 			public ClickType get(final InventoryClickEvent e) {
 				return e.getClick();
 			}
-		}, 0);
+		}, EventValues.TIME_NOW);
 		EventValues.registerEventValue(InventoryClickEvent.class, Inventory.class, new Getter<Inventory, InventoryClickEvent>() {
 			@Override
 			@Nullable
 			public Inventory get(final InventoryClickEvent e) {
 				return e.getClickedInventory();
 			}
-		}, 0);
+		}, EventValues.TIME_NOW);
 		//BlockFertilizeEvent
-		if(Skript.classExists("org.bukkit.event.block.BlockFertilizeEvent")) {
+		if (Skript.classExists("org.bukkit.event.block.BlockFertilizeEvent")) {
 			EventValues.registerEventValue(BlockFertilizeEvent.class, Player.class, new Getter<Player, BlockFertilizeEvent>() {
 				@Nullable
 				@Override
 				public Player get(BlockFertilizeEvent event) {
 					return event.getPlayer();
 				}
-			}, 0);
+			}, EventValues.TIME_NOW);
 		}
 		// CraftItemEvent REMIND maybe re-add this when Skript parser is reworked?
 //		EventValues.registerEventValue(CraftItemEvent.class, ItemStack.class, new Getter<ItemStack, CraftItemEvent>() {
@@ -1047,7 +1048,7 @@ public final class BukkitEventValues {
 //			public ItemStack get(final CraftItemEvent e) {
 //				return e.getRecipe().getResult();
 //			}
-//		}, 0);
+//		}, EventValues.TIME_NOW);
 		// PrepareItemCraftEvent
 		EventValues.registerEventValue(PrepareItemCraftEvent.class, Slot.class, new Getter<Slot, PrepareItemCraftEvent>() {
 			@Override
@@ -1055,7 +1056,7 @@ public final class BukkitEventValues {
 			public Slot get(final PrepareItemCraftEvent e) {
 				return new InventorySlot(e.getInventory(), 9);
 			}
-		}, 0);
+		}, EventValues.TIME_NOW);
 		EventValues.registerEventValue(PrepareItemCraftEvent.class, Player.class, new Getter<Player, PrepareItemCraftEvent>() {
 			@Override
 			@Nullable
@@ -1068,7 +1069,7 @@ public final class BukkitEventValues {
 					return (Player) first;
 				return null;
 			}
-		}, 0);
+		}, EventValues.TIME_NOW);
 		// CraftEvents - recipe namespaced key strings
 		if (NAMESPACE_SUPPORT) {
 			EventValues.registerEventValue(CraftItemEvent.class, String.class, new Getter<String, CraftItemEvent>() {
@@ -1080,7 +1081,7 @@ public final class BukkitEventValues {
 						return ((Keyed) recipe).getKey().toString();
 					return null;
 				}
-			}, 0);
+			}, EventValues.TIME_NOW);
 			EventValues.registerEventValue(PrepareItemCraftEvent.class, String.class, new Getter<String, PrepareItemCraftEvent>() {
 				@Nullable
 				@Override
@@ -1090,7 +1091,7 @@ public final class BukkitEventValues {
 						return ((Keyed) recipe).getKey().toString();
 					return null;
 				}
-			}, 0);
+			}, EventValues.TIME_NOW);
 		}
 		//InventoryOpenEvent
 		EventValues.registerEventValue(InventoryOpenEvent.class, Player.class, new Getter<Player, InventoryOpenEvent>() {
@@ -1099,14 +1100,14 @@ public final class BukkitEventValues {
 			public Player get(final InventoryOpenEvent e) {
 				return (Player) e.getPlayer();
 			}
-		}, 0);
+		}, EventValues.TIME_NOW);
 		EventValues.registerEventValue(InventoryOpenEvent.class, Inventory.class, new Getter<Inventory, InventoryOpenEvent>() {
 			@Override
 			@Nullable
 			public Inventory get(final InventoryOpenEvent e) {
 				return e.getInventory();
 			}
-		}, 0);
+		}, EventValues.TIME_NOW);
 		//InventoryCloseEvent
 		EventValues.registerEventValue(InventoryCloseEvent.class, Player.class, new Getter<Player, InventoryCloseEvent>() {
 			@Override
@@ -1114,14 +1115,14 @@ public final class BukkitEventValues {
 			public Player get(final InventoryCloseEvent e) {
 				return (Player) e.getPlayer();
 			}
-		}, 0);
+		}, EventValues.TIME_NOW);
 		EventValues.registerEventValue(InventoryCloseEvent.class, Inventory.class, new Getter<Inventory, InventoryCloseEvent>() {
 			@Override
 			@Nullable
 			public Inventory get(final InventoryCloseEvent e) {
 				return e.getInventory();
 			}
-		}, 0);
+		}, EventValues.TIME_NOW);
 		//InventoryPickupItemEvent
 		EventValues.registerEventValue(InventoryPickupItemEvent.class, Inventory.class, new Getter<Inventory, InventoryPickupItemEvent>() {
 			@Nullable
@@ -1129,21 +1130,21 @@ public final class BukkitEventValues {
 			public Inventory get(InventoryPickupItemEvent event) {
 				return event.getInventory();
 			}
-		}, 0);
+		}, EventValues.TIME_NOW);
 		EventValues.registerEventValue(InventoryPickupItemEvent.class, Item.class, new Getter<Item, InventoryPickupItemEvent>() {
 			@Nullable
 			@Override
 			public Item get(InventoryPickupItemEvent event) {
 				return event.getItem();
 			}
-		}, 0);
+		}, EventValues.TIME_NOW);
 		EventValues.registerEventValue(InventoryPickupItemEvent.class, ItemType.class, new Getter<ItemType, InventoryPickupItemEvent>() {
 			@Nullable
 			@Override
 			public ItemType get(InventoryPickupItemEvent event) {
 				return new ItemType(event.getItem().getItemStack());
 			}
-		}, 0);
+		}, EventValues.TIME_NOW);
 		//PortalCreateEvent
 		EventValues.registerEventValue(PortalCreateEvent.class, World.class, new Getter<World, PortalCreateEvent>() {
 			@Override
@@ -1151,7 +1152,7 @@ public final class BukkitEventValues {
 			public World get(final PortalCreateEvent e) {
 				return e.getWorld();
 			}
-		}, 0);
+		}, EventValues.TIME_NOW);
 		if (Skript.methodExists(PortalCreateEvent.class, "getEntity")) { // Minecraft 1.14+
 			EventValues.registerEventValue(PortalCreateEvent.class, Entity.class, new Getter<Entity, PortalCreateEvent>() {
 				@Override
@@ -1159,7 +1160,7 @@ public final class BukkitEventValues {
 				public Entity get(final PortalCreateEvent e) {
 					return e.getEntity();
 				}
-			}, 0);
+			}, EventValues.TIME_NOW);
 		}
 		//PlayerEditBookEvent
 		EventValues.registerEventValue(PlayerEditBookEvent.class, ItemType.class, new Getter<ItemType, PlayerEditBookEvent>() {
@@ -1169,7 +1170,7 @@ public final class BukkitEventValues {
 				book.setItemMeta(e.getNewBookMeta());
 				return new ItemType(book); //TODO: Find better way to derive this event value 
 			}
-		}, 0);
+		}, EventValues.TIME_NOW);
 		//ItemDespawnEvent
 		EventValues.registerEventValue(ItemDespawnEvent.class, Item.class, new Getter<Item, ItemDespawnEvent>() {
 			@Override
@@ -1177,14 +1178,14 @@ public final class BukkitEventValues {
 			public Item get(ItemDespawnEvent e) {
 				return e.getEntity();
 			}
-		}, 0);
+		}, EventValues.TIME_NOW);
 		EventValues.registerEventValue(ItemDespawnEvent.class, ItemType.class, new Getter<ItemType, ItemDespawnEvent>() {
 			@Override
 			@Nullable
 			public ItemType get(ItemDespawnEvent e) {
 				return new ItemType(e.getEntity().getItemStack());
 			}
-		}, 0);
+		}, EventValues.TIME_NOW);
 		//ItemMergeEvent
 		EventValues.registerEventValue(ItemMergeEvent.class, Item.class, new Getter<Item, ItemMergeEvent>() {
 			@Override
@@ -1192,21 +1193,21 @@ public final class BukkitEventValues {
 			public Item get(ItemMergeEvent e) {
 				return e.getEntity();
 			}
-		}, 0);
+		}, EventValues.TIME_NOW);
 		EventValues.registerEventValue(ItemMergeEvent.class, Item.class, new Getter<Item, ItemMergeEvent>() {
 			@Override
 			@Nullable
 			public Item get(ItemMergeEvent e) {
 				return e.getTarget();
 			}
-		}, 1);
+		}, EventValues.TIME_FUTURE);
 		EventValues.registerEventValue(ItemMergeEvent.class, ItemType.class, new Getter<ItemType, ItemMergeEvent>() {
 			@Override
 			@Nullable
 			public ItemType get(ItemMergeEvent e) {
 				return new ItemType(e.getEntity().getItemStack());
 			}
-		}, 0);
+		}, EventValues.TIME_NOW);
 		//PlayerTeleportEvent
 		EventValues.registerEventValue(PlayerTeleportEvent.class, TeleportCause.class, new Getter<TeleportCause, PlayerTeleportEvent>() {
 			@Override
@@ -1214,14 +1215,14 @@ public final class BukkitEventValues {
 			public TeleportCause get(final PlayerTeleportEvent e) {
 				return e.getCause();
 			}
-		}, 0);
+		}, EventValues.TIME_NOW);
 		EventValues.registerEventValue(PlayerTeleportEvent.class, Location.class, new Getter<Location, PlayerTeleportEvent>() {
 			@Override
 			@Nullable
 			public Location get(final PlayerTeleportEvent e) {
 				return e.getFrom();
 			}
-		}, -1);
+		}, EventValues.TIME_PAST);
 		//PlayerToggleFlightEvent
 		EventValues.registerEventValue(PlayerToggleFlightEvent.class, Player.class, new Getter<Player, PlayerToggleFlightEvent>() {
 			@Override
@@ -1229,7 +1230,7 @@ public final class BukkitEventValues {
 			public Player get(PlayerToggleFlightEvent e) {
 				return e.getPlayer();
 			}
-		}, 0);
+		}, EventValues.TIME_NOW);
 		//CreatureSpawnEvent
 		EventValues.registerEventValue(CreatureSpawnEvent.class, SpawnReason.class, new Getter<SpawnReason, CreatureSpawnEvent>() {
 			@Override
@@ -1237,7 +1238,7 @@ public final class BukkitEventValues {
 			public SpawnReason get(CreatureSpawnEvent e) {
 				return e.getSpawnReason();
 			}
-		}, 0);
+		}, EventValues.TIME_NOW);
 		//FireworkExplodeEvent
 		if (Skript.classExists("org.bukkit.event.entity.FireworkExplodeEvent")) {
 			EventValues.registerEventValue(FireworkExplodeEvent.class, Firework.class, new Getter<Firework, FireworkExplodeEvent>() {
@@ -1246,7 +1247,7 @@ public final class BukkitEventValues {
 				public Firework get(FireworkExplodeEvent e) {
 					return e.getEntity();
 				}
-			}, 0);
+			}, EventValues.TIME_NOW);
 			EventValues.registerEventValue(FireworkExplodeEvent.class, FireworkEffect.class, new Getter<FireworkEffect, FireworkExplodeEvent>() {
 				@Override
 				@Nullable
@@ -1256,7 +1257,7 @@ public final class BukkitEventValues {
 						return null;
 					return effects.get(0);
 				}
-			}, 0);
+			}, EventValues.TIME_NOW);
 		}
 		//PlayerRiptideEvent
 		if (Skript.classExists("org.bukkit.event.player.PlayerRiptideEvent")) {
@@ -1265,7 +1266,7 @@ public final class BukkitEventValues {
 				public ItemType get(PlayerRiptideEvent e) {
 					return new ItemType(e.getItem());
 				}
-			}, 0);
+			}, EventValues.TIME_NOW);
 		}
 		//PlayerArmorChangeEvent
 		if (Skript.classExists("com.destroystokyo.paper.event.player.PlayerArmorChangeEvent")) {
@@ -1276,7 +1277,7 @@ public final class BukkitEventValues {
 					ItemStack stack = e.getNewItem();
 					return stack == null ? null : new ItemType(stack);
 				}
-			}, 0);
+			}, EventValues.TIME_NOW);
 		}
 		//PrepareItemEnchantEvent
 		EventValues.registerEventValue(PrepareItemEnchantEvent.class, Player.class, new Getter<Player, PrepareItemEnchantEvent>() {
@@ -1285,21 +1286,21 @@ public final class BukkitEventValues {
 			public Player get(PrepareItemEnchantEvent e) {
 				return e.getEnchanter();
 			}
-		}, 0);
+		}, EventValues.TIME_NOW);
 		EventValues.registerEventValue(PrepareItemEnchantEvent.class, ItemType.class, new Getter<ItemType, PrepareItemEnchantEvent>() {
 			@Override
 			@Nullable
 			public ItemType get(PrepareItemEnchantEvent e) {
 				return new ItemType(e.getItem());
 			}
-		}, 0);
+		}, EventValues.TIME_NOW);
 		EventValues.registerEventValue(PrepareItemEnchantEvent.class, Block.class, new Getter<Block, PrepareItemEnchantEvent>() {
 			@Override
 			@Nullable
 			public Block get(PrepareItemEnchantEvent e) {
 				return e.getEnchantBlock();
 			}
-		}, 0);
+		}, EventValues.TIME_NOW);
 		//EnchantItemEvent
 		EventValues.registerEventValue(EnchantItemEvent.class, Player.class, new Getter<Player, EnchantItemEvent>() {
 			@Override
@@ -1307,28 +1308,28 @@ public final class BukkitEventValues {
 			public Player get(EnchantItemEvent e) {
 				return e.getEnchanter();
 			}
-		}, 0);
+		}, EventValues.TIME_NOW);
 		EventValues.registerEventValue(EnchantItemEvent.class, ItemType.class, new Getter<ItemType, EnchantItemEvent>() {
 			@Override
 			@Nullable
 			public ItemType get(EnchantItemEvent e) {
 				return new ItemType(e.getItem());
 			}
-		}, 0);
+		}, EventValues.TIME_NOW);
 		EventValues.registerEventValue(EnchantItemEvent.class, Block.class, new Getter<Block, EnchantItemEvent>() {
 			@Override
 			@Nullable
 			public Block get(EnchantItemEvent e) {
 				return e.getEnchantBlock();
 			}
-		}, 0);
+		}, EventValues.TIME_NOW);
 		EventValues.registerEventValue(HorseJumpEvent.class, Entity.class, new Getter<Entity, HorseJumpEvent>() {
 			@Nullable
 			@Override
 			public Entity get(HorseJumpEvent evt) {
 				return evt.getEntity();
 			}
-		}, 0);
+		}, EventValues.TIME_NOW);
 		// PlayerChangedWorldEvent
 		EventValues.registerEventValue(PlayerChangedWorldEvent.class, World.class, new Getter<World, PlayerChangedWorldEvent>() {
 			@Nullable
@@ -1336,6 +1337,16 @@ public final class BukkitEventValues {
 			public World get(PlayerChangedWorldEvent e) {
 				return e.getFrom();
 			}
-		}, -1);
+		}, EventValues.TIME_PAST);
+		
+		Skript.registerEvent("arrow pickup", SimpleEvent.class, PlayerPickupArrowEvent.class, "arrow pickup");
+		EventValues.registerEventValue(PlayerPickupArrowEvent.class, AbstractArrow.class, new Getter<AbstractArrow, PlayerPickupArrowEvent>() {
+			@Override
+			@Nullable
+			public AbstractArrow get(PlayerPickupArrowEvent event) {
+				return event.getArrow();
+			}
+		}, EventValues.TIME_NOW, PlayerEvent.class);
+		Bukkit.getScheduler().runTaskLater(Skript.getInstance(), () -> EventValues.debug(), 1);
 	}
 }
