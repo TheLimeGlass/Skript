@@ -11,8 +11,8 @@ plugins {
 	id 'java'
 }
 
-sourceCompatibility = 12
-targetCompatibility = 12
+sourceCompatibility = 17
+targetCompatibility = 17
 
 allprojects {
 	repositories {
@@ -24,9 +24,27 @@ allprojects {
 	}
 }
 
+configurations.all {
+	resolutionStrategy.eachDependency {details ->
+		if (details.getTarget().getName().equalsIgnoreCase('paper-api')) {
+			if (targetCompatibility > JavaVersion.VERSION_12) {
+				details.useVersion '1.19-R0.1-SNAPSHOT'
+			} else {
+				details.useTarget 'com.destroystokyo.paper:paper-api:1.12.2-R0.1-SNAPSHOT'
+			}
+		}
+	}
+}
+
 dependencies {
 	shadow group: 'io.papermc', name: 'paperlib', version: '1.0.6'
-	implementation group: 'io.papermc.paper', name: 'paper-api', version: '1.19-R0.1-SNAPSHOT'
+	components {
+		if (targetCompatibility > JavaVersion.VERSION_12) {
+			implementation 'io.papermc.paper:paper-api'
+		} else {
+			implementation 'com.destroystokyo.paper:paper-api'
+		}
+	}
 	implementation group: 'org.eclipse.jdt', name: 'org.eclipse.jdt.annotation', version: '2.2.600'
 	implementation group: 'com.google.code.findbugs', name: 'findbugs', version: '3.0.1'
 	implementation group: 'com.sk89q.worldguard', name: 'worldguard-legacy', version: '7.0.0-SNAPSHOT'
@@ -162,8 +180,9 @@ tasks.register('testNaming') {
 void createTestTask(String name, String environments, boolean devMode, int javaVersion) {
 	tasks.register(name) {
 		// Compile Skript and check test naming
-		dependsOn jar, testNaming
 		project.targetCompatibility = javaVersion
+		project.sourceCompatibility = javaVersion
+		dependsOn jar, testNaming
 		doFirst {
 			javaexec {
 				if (devMode) {
