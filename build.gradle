@@ -14,6 +14,10 @@ plugins {
 sourceCompatibility = 17
 targetCompatibility = 17
 
+tasks.withType(JavaCompile).configureEach {
+	options.compilerArgs += ["-source", "12", "-target", "12"]
+}
+
 allprojects {
 	repositories {
 		mavenCentral()
@@ -24,27 +28,30 @@ allprojects {
 	}
 }
 
-configurations.all {
-	resolutionStrategy.eachDependency {details ->
-		if (details.getTarget().getName().equalsIgnoreCase('paper-api')) {
-			if (targetCompatibility > JavaVersion.VERSION_12) {
-				details.useVersion '1.19-R0.1-SNAPSHOT'
-			} else {
-				details.useTarget 'com.destroystokyo.paper:paper-api:1.12.2-R0.1-SNAPSHOT'
-			}
-		}
-	}
-}
+//configurations.all {
+//	resolutionStrategy.eachDependency {details ->
+//		if (details.getTarget().getName().equalsIgnoreCase('paper-api')) {
+//			if (targetCompatibility == JavaVersion.VERSION_12) {
+//				details.useTarget 'com.destroystokyo.paper:paper-api:1.13.2-R0.1-SNAPSHOT'
+//			} else if (targetCompatibility == JavaVersion.VERSION_16) {
+//				details.useTarget 'com.destroystokyo.paper:paper-api:1.16.5-R0.1-SNAPSHOT'
+//			} else {
+//				details.useVersion '1.19-R0.1-SNAPSHOT'
+//			}
+//		}
+//	}
+//}
 
 dependencies {
 	shadow group: 'io.papermc', name: 'paperlib', version: '1.0.6'
-	components {
-		if (targetCompatibility > JavaVersion.VERSION_12) {
-			implementation 'io.papermc.paper:paper-api'
-		} else {
-			implementation 'com.destroystokyo.paper:paper-api'
-		}
-	}
+//	components {
+//		if (targetCompatibility == JavaVersion.VERSION_17) {
+//			implementation 'io.papermc.paper:paper-api'
+//		} else {
+//			implementation 'com.destroystokyo.paper:paper-api'
+//		}
+//	}
+	implementation 'io.papermc.paper:paper-api:1.19-R0.1-SNAPSHOT'
 	implementation group: 'org.eclipse.jdt', name: 'org.eclipse.jdt.annotation', version: '2.2.600'
 	implementation group: 'com.google.code.findbugs', name: 'findbugs', version: '3.0.1'
 	implementation group: 'com.sk89q.worldguard', name: 'worldguard-legacy', version: '7.0.0-SNAPSHOT'
@@ -176,12 +183,24 @@ tasks.register('testNaming') {
 	}
 }
 
-// Create a test task with given name, environments dir/file and is it development mode task
-void createTestTask(String name, String environments, boolean devMode, int javaVersion) {
+// Create a test task with given name, environments dir/file, dev mode and Spigot version.
+void createTestTask(String name, String environments, boolean devMode, String spigotVersion) {
 	tasks.register(name) {
-		// Compile Skript and check test naming
-		project.targetCompatibility = javaVersion
-		project.sourceCompatibility = javaVersion
+//		if (spigotVersion.equals("1.13"))
+//			project.targetCompatibility = JavaVersion.VERSION_12
+//		if (spigotVersion.equals("1.14"))
+//			project.targetCompatibility = JavaVersion.VERSION_16 // TODO
+//		if (spigotVersion.equals("1.15"))
+//			project.targetCompatibility = JavaVersion.VERSION_16 // TODO
+//		if (spigotVersion.equals("1.16"))
+//			project.targetCompatibility = JavaVersion.VERSION_16
+//		if (spigotVersion.equals("1.17"))
+//			project.targetCompatibility = JavaVersion.VERSION_17
+//		if (spigotVersion.equals("1.18"))
+//			project.targetCompatibility = JavaVersion.VERSION_17
+//		if (spigotVersion.equals("1.19"))
+//			project.targetCompatibility = JavaVersion.VERSION_17
+//		project.sourceCompatibility = project.targetCompatibility
 		dependsOn jar, testNaming
 		doFirst {
 			javaexec {
@@ -208,11 +227,11 @@ void createTestTask(String name, String environments, boolean devMode, int javaV
 }
 
 // Register different Skript testing tasks
-createTestTask('quickTest', 'src/test/skript/environments/main/paper-1.19.json', false, 17)
-createTestTask('skriptTest', 'src/test/skript/environments/main', false, 17)
-createTestTask('skriptTestJava12', 'src/test/skript/environments/extra', false, 12)
+createTestTask('quickTest', 'src/test/skript/environments/main/paper-1.19.json', false, "1.19")
+createTestTask('skriptTest', 'src/test/skript/environments/main', false, "1.19")
+createTestTask('skriptTestJava12', 'src/test/skript/environments/extra', false, "1.13")
 createTestTask('skriptTestDev', 'src/test/skript/environments/main/' + (project.property('testEnv') == null
-	? 'paper-1.19.json' : project.property('testEnv') + '.json'), true, 17)
+	? 'paper-1.19.json' : project.property('testEnv') + '.json'), true, "1.19")
 tasks.register('skriptTestFull') {
 	dependsOn skriptTestJava12
 	doFirst {
