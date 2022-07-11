@@ -44,14 +44,8 @@ allprojects {
 
 dependencies {
 	shadow group: 'io.papermc', name: 'paperlib', version: '1.0.6'
-//	components {
-//		if (targetCompatibility == JavaVersion.VERSION_17) {
-//			implementation 'io.papermc.paper:paper-api'
-//		} else {
-//			implementation 'com.destroystokyo.paper:paper-api'
-//		}
-//	}
-	implementation 'io.papermc.paper:paper-api:1.19-R0.1-SNAPSHOT'
+	shadow group: 'org.bstats', name: 'bstats-bukkit', version: '3.0.0'
+	implementation group: 'io.papermc.paper', name: 'paper-api', version: '1.19-R0.1-SNAPSHOT'
 	implementation group: 'org.eclipse.jdt', name: 'org.eclipse.jdt.annotation', version: '2.2.600'
 	implementation group: 'com.google.code.findbugs', name: 'findbugs', version: '3.0.1'
 	implementation group: 'com.sk89q.worldguard', name: 'worldguard-legacy', version: '7.0.0-SNAPSHOT'
@@ -101,8 +95,11 @@ tasks.withType(ShadowJar) {
 	]
 	dependencies {
 		include(dependency('io.papermc:paperlib'))
+		include(dependency('org.bstats:bstats-bukkit'))
+		include(dependency('org.bstats:bstats-base'))
 	}
 	relocate 'io.papermc.lib', 'ch.njol.skript.paperlib'
+	relocate 'org.bstats', 'ch.njol.skript.bstats'
 	manifest {
 		attributes(
 			'Name': 'ch/njol/skript',
