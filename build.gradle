@@ -11,9 +11,12 @@ plugins {
 	id 'java'
 }
 
-tasks.withType(JavaCompile).configureEach {
-	options.compilerArgs += ["-source", "12", "-target", "12"]
-}
+sourceCompatibility = 17
+targetCompatibility = 17
+
+//tasks.withType(JavaCompile).configureEach {
+//	options.compilerArgs += ["-source", "12", "-target", "12"]
+//}
 
 allprojects {
 	repositories {
@@ -24,20 +27,6 @@ allprojects {
 		maven { url 'https://ci.emc.gs/nexus/content/groups/aikar/' }
 	}
 }
-
-//configurations.all {
-//	resolutionStrategy.eachDependency {details ->
-//		if (details.getTarget().getName().equalsIgnoreCase('paper-api')) {
-//			if (targetCompatibility == JavaVersion.VERSION_12) {
-//				details.useTarget 'com.destroystokyo.paper:paper-api:1.13.2-R0.1-SNAPSHOT'
-//			} else if (targetCompatibility == JavaVersion.VERSION_16) {
-//				details.useTarget 'com.destroystokyo.paper:paper-api:1.16.5-R0.1-SNAPSHOT'
-//			} else {
-//				details.useVersion '1.19-R0.1-SNAPSHOT'
-//			}
-//		}
-//	}
-//}
 
 dependencies {
 	shadow group: 'io.papermc', name: 'paperlib', version: '1.0.6'
@@ -180,21 +169,6 @@ tasks.register('testNaming') {
 // Create a test task with given name, environments dir/file, dev mode and Spigot version.
 void createTestTask(String name, String environments, boolean devMode, String spigotVersion) {
 	tasks.register(name) {
-//		if (spigotVersion.equals("1.13"))
-//			project.targetCompatibility = JavaVersion.VERSION_12
-//		if (spigotVersion.equals("1.14"))
-//			project.targetCompatibility = JavaVersion.VERSION_16 // TODO
-//		if (spigotVersion.equals("1.15"))
-//			project.targetCompatibility = JavaVersion.VERSION_16 // TODO
-//		if (spigotVersion.equals("1.16"))
-//			project.targetCompatibility = JavaVersion.VERSION_16
-//		if (spigotVersion.equals("1.17"))
-//			project.targetCompatibility = JavaVersion.VERSION_17
-//		if (spigotVersion.equals("1.18"))
-//			project.targetCompatibility = JavaVersion.VERSION_17
-//		if (spigotVersion.equals("1.19"))
-//			project.targetCompatibility = JavaVersion.VERSION_17
-//		project.sourceCompatibility = project.targetCompatibility
 		dependsOn jar, testNaming
 		doFirst {
 			javaexec {
