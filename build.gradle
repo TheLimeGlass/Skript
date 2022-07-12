@@ -11,8 +11,8 @@ plugins {
 	id 'java'
 }
 
-//sourceCompatibility = 17
-//targetCompatibility = 17
+sourceCompatibility = 17
+targetCompatibility = 17
 
 tasks.withType(JavaCompile).configureEach {
 	options.compilerArgs += ["-source", "12", "-target", "12"]
@@ -167,7 +167,7 @@ tasks.register('testNaming') {
 }
 
 // Create a test task with given name, environments dir/file, dev mode and Spigot version.
-void createTestTask(String name, String environments, boolean devMode, String spigotVersion) {
+void createTestTask(String name, String environments, boolean devMode) {
 	tasks.register(name) {
 		dependsOn jar, testNaming
 		doFirst {
@@ -195,11 +195,11 @@ void createTestTask(String name, String environments, boolean devMode, String sp
 }
 
 // Register different Skript testing tasks
-createTestTask('quickTest', 'src/test/skript/environments/main/paper-1.19.json', false, "1.19")
-createTestTask('skriptTest', 'src/test/skript/environments/main', false, "1.19")
-createTestTask('skriptTestJava12', 'src/test/skript/environments/extra', false, "1.13")
+createTestTask('quickTest', 'src/test/skript/environments/main/paper-1.19.json', false)
+createTestTask('skriptTest', 'src/test/skript/environments/main', false)
+createTestTask('skriptTestJava12', 'src/test/skript/environments/extra', false)
 createTestTask('skriptTestDev', 'src/test/skript/environments/main/' + (project.property('testEnv') == null
-	? 'paper-1.19.json' : project.property('testEnv') + '.json'), true, "1.19")
+	? 'paper-1.19.json' : project.property('testEnv') + '.json'), true)
 tasks.register('skriptTestFull') {
 	dependsOn skriptTestJava12
 	doFirst {
