@@ -11,6 +11,9 @@ plugins {
 	id 'java'
 }
 
+sourceCompatibility = 17
+targetCompatibility = 17
+
 tasks.withType(JavaCompile).configureEach {
 	options.compilerArgs += ["-source", "12", "-target", "12"]
 }
