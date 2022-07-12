@@ -28,6 +28,8 @@ import ch.njol.skript.lang.util.ConvertedExpression;
 import ch.njol.skript.lang.util.SimpleExpression;
 import ch.njol.skript.log.ErrorQuality;
 import ch.njol.skript.registrations.Classes;
+import ch.njol.skript.registrations.Converters;
+import ch.njol.skript.util.Getter;
 import ch.njol.skript.util.slot.Slot;
 import ch.njol.util.Checker;
 import org.bukkit.event.Event;
@@ -85,19 +87,32 @@ public interface Expression<T> extends SyntaxElement, Debuggable {
 	 * <p>
 	 * Do not use this in conditions, use {@link #check(Event, Checker, boolean)} instead.
 	 * 
-	 * @param e The event
+	 * @param event The event the expression is being used in.
 	 * @return An array of values of this expression which must neither be null nor contain nulls, and which must not be an internal array.
 	 */
-	public T[] getArray(final Event e);
+	public T[] getArray(Event event);
+	
+	/**
+	 * Get all the values of this expression and then convert them using the provided getter for easy of access.
+	 * 
+	 * @param <G> The returning type of the converter.
+	 * @param event The event the expression is being used in.
+	 * @param converter The converter to do the convertering to the type.
+	 * @return The values completed by the converter.
+	 */
+	public default <G> G[] get(Event event, Converter<? super T, ? extends G> converter) {
+		assert converter != null;
+		return Converters.convertUnsafe(getArray(event), getReturnType(), converter);
+	}
 	
 	/**
 	 * Gets all possible return values of this expression, i.e. it returns the same as {@link #getArray(Event)} if {@link #getAnd()} is true, otherwise all possible values for
 	 * {@link #getSingle(Event)}.
 	 * 
-	 * @param e The event
+	 * @param event The event the expression is being used in.
 	 * @return An array of all possible values of this expression for the given event which must neither be null nor contain nulls, and which must not be an internal array.
 	 */
-	public T[] getAll(final Event e);
+	public T[] getAll(Event event);
 	
 	/**
 	 * Gets a non-null stream of this expression's values.
