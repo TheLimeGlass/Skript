@@ -197,9 +197,7 @@ createTestTask('skriptTestJava12', 'src/test/skript/environments/extra', false, 
 createTestTask('skriptTestDev', 'src/test/skript/environments/main/' + (project.property('testEnv') == null
 	? 'paper-1.19.json' : project.property('testEnv') + '.json'), true, Integer.parseInt(project.property('testEnvJavaVersion') == null
 	? 17 : project.property('testEnvJavaVersion')))
-tasks.register('skriptTestFull') {
-	dependsOn skriptTestJava12, skriptTest
-}
+tasks.register('skriptTestFull') {dependsOn skriptTestJava12, skriptTest}
 
 // Build flavor configurations
 task githubResources(type: ProcessResources) {
