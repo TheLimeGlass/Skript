@@ -19,6 +19,7 @@ package ch.njol.skript.expressions;
 
 import org.bukkit.event.Event;
 import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.ItemStack;
 import org.eclipse.jdt.annotation.Nullable;
 
 import ch.njol.skript.Skript;
@@ -46,7 +47,7 @@ public class ExprItemAmount extends SimpleExpression<Integer> {
 
 	static {
 		Skript.registerExpression(ExprItemAmount.class, Integer.class, ExpressionType.PROPERTY, "item[[ ]stack] (amount|size|number) [of %slots/itemtypes%]", "%slots/itemtypes%'[s] item[[ ]stack] (amount|size|number)");
-		Skript.registerExpression(ExprItemAmount.class, Integer.class, ExpressionType.COMBINED, "item[[ ]stack] (amount|size|number) of %itemtypes% [with]in %slots/inventories%");
+		Skript.registerExpression(ExprItemAmount.class, Integer.class, ExpressionType.COMBINED, "item[[ ]stack] (amount|size|number) of %itemtypes% [with]in %itemstacks/slots/inventories%");
 	}
 
 	@Nullable
@@ -91,11 +92,17 @@ public class ExprItemAmount extends SimpleExpression<Integer> {
 							.mapToInt(itemstack -> itemstack.getAmount())
 							.sum();
 				}
-				assert object instanceof Slot;
-				Slot slot = (Slot) object;
-				if (!itemtypes.stream(event).anyMatch(item -> item.isOfType(slot.getItem())))
+				if (object instanceof Slot) {
+					Slot slot = (Slot) object;
+					if (!itemtypes.stream(event).anyMatch(item -> item.isOfType(slot.getItem())))
+						return null;
+					return slot.getAmount();
+				}
+				assert object instanceof ItemStack;
+				ItemStack item = (ItemStack) object;
+				if (!itemtypes.stream(event).anyMatch(i -> i.getMaterial() == item.getType()))
 					return null;
-				return slot.getAmount();
+				return item.getAmount();
 			}
 		});
 	}
