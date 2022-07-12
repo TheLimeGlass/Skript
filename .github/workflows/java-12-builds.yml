@@ -1,4 +1,4 @@
-name: Java 12 CI
+name: Java 12 CI (MC 1.12-1.16)
 
 on: [push, pull_request]
 
