@@ -1,4 +1,3 @@
-/**
  *   This file is part of Skript.
  *
  *  Skript is free software: you can redistribute it and/or modify
@@ -19,10 +18,13 @@
 package ch.njol.skript.expressions;
 
 import org.bukkit.event.Event;
+import org.bukkit.inventory.Inventory;
 import org.eclipse.jdt.annotation.Nullable;
 
 import ch.njol.skript.Skript;
 import ch.njol.skript.aliases.ItemType;
+import ch.njol.skript.classes.Changer.ChangeMode;
+import ch.njol.skript.classes.Converter;
 import ch.njol.skript.doc.Description;
 import ch.njol.skript.doc.Examples;
 import ch.njol.skript.doc.Name;
@@ -31,9 +33,9 @@ import ch.njol.skript.lang.Expression;
 import ch.njol.skript.lang.ExpressionType;
 import ch.njol.skript.lang.SkriptParser.ParseResult;
 import ch.njol.skript.lang.util.SimpleExpression;
-import ch.njol.skript.util.Getter;
 import ch.njol.skript.util.slot.Slot;
 import ch.njol.util.Kleenean;
+import ch.njol.util.coll.CollectionUtils;
 
 @Name("Item Amount")
 @Description("The amount of an <a href='classes.html#itemstack'>item stack</a>.")
@@ -48,13 +50,13 @@ public class ExprItemAmount extends SimpleExpression<Integer> {
 	}
 
 	@Nullable
-	private Expression<ItemType> itemtype;
+	private Expression<ItemType> itemtypes;
 	private Expression<Object> objects;
 	private int pattern;
 
-	private final Getter<Integer, Object> itemTypeGetter = new Getter<>() {
+	private final Converter<Object, Integer> amountConverter = new Converter<>() {
 		@Override
-		public @Nullable Integer get(Object object) {
+		public Integer convert(Object object) {
 			if (object instanceof ItemType)
 				return ((ItemType) object).getAmount();
 			assert object instanceof Slot;
@@ -70,14 +72,32 @@ public class ExprItemAmount extends SimpleExpression<Integer> {
 			objects = (Expression<Object>) exprs[0];
 			return true;
 		}
-		itemtype = (Expression<ItemType>) exprs[0];
+		itemtypes = (Expression<ItemType>) exprs[0];
 		objects = (Expression<Object>) exprs[1];
 		return true;
 	}
 
 	@Override
 	protected @Nullable Integer[] get(Event event) {
-		return null;
+		return objects.get(event, pattern == 0 ? amountConverter : new Converter<>() {
+			@Override
+			public Integer convert(Object object) {
+				if (itemtypes == null)
+					return null;
+				if (object instanceof Inventory) {
+					Inventory inventory = (Inventory) object;
+					return itemtypes.stream(event)
+							.flatMap(type -> inventory.all(type.getMaterial()).values().stream())
+							.mapToInt(itemstack -> itemstack.getAmount())
+							.sum();
+				}
+				assert object instanceof Slot;
+				Slot slot = (Slot) object;
+				if (!itemtypes.stream(event).anyMatch(item -> item.isOfType(slot.getItem())))
+					return null;
+				return slot.getAmount();
+			}
+		});
 	}
 
 	@Override
@@ -92,60 +112,59 @@ public class ExprItemAmount extends SimpleExpression<Integer> {
 
 	@Override
 	public String toString(@Nullable Event event, boolean debug) {
-		return null;
+		if (event == null)
+			return pattern == 0 ? "item amount" : "item amount of type";
+		return pattern == 0 ? "item amount of " + objects.toString(event, debug) : "item amount of " + itemtypes.toString(event, debug) + " in " + objects.toString(event, debug);
 	}
 
-//	@Override
-//	public Long convert(Object item) {
-//		return (long) (item instanceof ItemType ? ((ItemType) item).getAmount() : ((Slot) item).getAmount());
-//	}
-//
-//	@Override
-//	public @Nullable Class<?>[] acceptChange(ChangeMode mode) {
-//		return (mode != ChangeMode.REMOVE_ALL) ? CollectionUtils.array(Number.class) : null;
-//	}
-//
-//	@Override
-//	public void change(Event event, @Nullable Object[] delta, ChangeMode mode) {
-//		int amount = delta != null ? ((Number) delta[0]).intValue() : 0;
-//		switch (mode) {
-//			case ADD:
-//				for (Object obj : getExpr().getArray(event))
-//					if (obj instanceof ItemType) {
-//						ItemType item = ((ItemType) obj);
-//						item.setAmount(item.getAmount() + amount);
-//					} else {
-//						Slot slot = ((Slot) obj);
-//						slot.setAmount(slot.getAmount() + amount);
-//					}
-//				break;
-//			case SET:
-//				for (Object obj : getExpr().getArray(event))
-//					if (obj instanceof ItemType)
-//						((ItemType) obj).setAmount(amount);
-//					else
-//						((Slot) obj).setAmount(amount);
-//				break;
-//			case REMOVE:
-//				for (Object obj : getExpr().getArray(event))
-//					if (obj instanceof ItemType) {
-//						ItemType item = ((ItemType) obj);
-//						item.setAmount(item.getAmount() - amount);
-//					} else {
-//						Slot slot = ((Slot) obj);
-//						slot.setAmount(slot.getAmount() - amount);
-//					}
-//				break;
-//			case REMOVE_ALL:
-//			case RESET:
-//			case DELETE:
-//				for (Object obj : getExpr().getArray(event))
-//					if (obj instanceof ItemType)
-//						((ItemType) obj).setAmount(1);
-//					else
-//						((Slot) obj).setAmount(1);
-//				break;
-//		}
-//	}
+	@Override
+	public @Nullable Class<?>[] acceptChange(ChangeMode mode) {
+		if (pattern != 0 || mode == ChangeMode.REMOVE_ALL)
+			return null;
+		return CollectionUtils.array(Number.class);
+	}
+
+	@Override
+	public void change(Event event, @Nullable Object[] delta, ChangeMode mode) {
+		int amount = delta != null ? ((Number) delta[0]).intValue() : 0;
+		switch (mode) {
+			case ADD:
+				for (Object obj : objects.getArray(event))
+					if (obj instanceof ItemType) {
+						ItemType item = ((ItemType) obj);
+						item.setAmount(item.getAmount() + amount);
+					} else {
+						Slot slot = ((Slot) obj);
+						slot.setAmount(slot.getAmount() + amount);
+					}
+				break;
+			case SET:
+				for (Object obj : objects.getArray(event))
+					if (obj instanceof ItemType)
+						((ItemType) obj).setAmount(amount);
+					else
+						((Slot) obj).setAmount(amount);
+				break;
+			case REMOVE:
+				for (Object obj : objects.getArray(event))
+					if (obj instanceof ItemType) {
+						ItemType item = ((ItemType) obj);
+						item.setAmount(item.getAmount() - amount);
+					} else {
+						Slot slot = ((Slot) obj);
+						slot.setAmount(slot.getAmount() - amount);
+					}
+				break;
+			case REMOVE_ALL:
+			case RESET:
+			case DELETE:
+				for (Object obj : objects.getArray(event))
+					if (obj instanceof ItemType)
+						((ItemType) obj).setAmount(1);
+					else
+						((Slot) obj).setAmount(1);
+				break;
+		}
+	}
 
 }
