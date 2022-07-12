@@ -51,7 +51,7 @@ import ch.njol.util.coll.iterator.IteratorIterable;
  * @author Peter Güttinger
  */
 @Name("Sets")
-@Description("Collection sets of items or blocks of a specific type, useful for looping.")
+@Description("Collection sets of items or blocks of a specific type or colours, useful for looping.")
 @Examples({"loop items of type ore and log:",
 		"	block contains loop-item",
 		"	message \"Theres at least one %loop-item% in this block\"",
