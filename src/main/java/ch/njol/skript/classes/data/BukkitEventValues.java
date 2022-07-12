@@ -297,7 +297,7 @@ public final class BukkitEventValues {
 				return e.getPlayer();
 			}
 		}, EventValues.TIME_NOW);
-		// BlockBreakEventValues.TIME_NOWvent
+		// BlockBreakEvent
 		EventValues.registerEventValue(BlockBreakEvent.class, Player.class, new Getter<Player, BlockBreakEvent>() {
 			@Override
 			@Nullable
