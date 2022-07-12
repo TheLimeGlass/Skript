@@ -14,13 +14,9 @@ plugins {
 //sourceCompatibility = 17
 //targetCompatibility = 17
 
-java {
-	toolchain.languageVersion.set(JavaLanguageVersion.of(17))
+tasks.withType(JavaCompile).configureEach {
+	options.compilerArgs += ["-source", "12", "-target", "12"]
 }
-
-//tasks.withType(JavaCompile).configureEach {
-//	options.compilerArgs += ["-source", "12", "-target", "12"]
-//}
 
 allprojects {
 	repositories {
