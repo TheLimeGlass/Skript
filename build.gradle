@@ -197,7 +197,7 @@ tasks.withType(JavaCompile).configureEach {
 // Register different Skript testing tasks
 createTestTask('quickTest', 'src/test/skript/environments/main/' + latestEnv, false, latestJava)
 createTestTask('skriptTest', 'src/test/skript/environments/main', false, latestJava)
-createTestTask('skriptTestJava8', 'src/test/skript/environments/extra', false, oldestJava)
+createTestTask('skriptTestJava8', 'src/test/skript/environments/old', false, oldestJava)
 createTestTask('skriptTestDev', 'src/test/skript/environments/main/' + (project.property('testEnv') == null
 	? latestEnv : project.property('testEnv') + '.json'), true, Integer.parseInt(project.property('testEnvJavaVersion') == null
 	? latestJava : project.property('testEnvJavaVersion')))
