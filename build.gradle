@@ -11,10 +11,6 @@ plugins {
 	id 'java'
 }
 
-tasks.withType(JavaCompile).configureEach {
-	options.compilerArgs += ["-source", "8", "-target", "8"]
-}
-
 allprojects {
 	repositories {
 		mavenCentral()
@@ -190,19 +186,27 @@ void createTestTask(String name, String environments, boolean devMode, int javaV
 	}
 }
 
+def latestEnv = 'paper-1.19.json'
+def latestJava = 17
+def oldestJava = 8
+
+tasks.withType(JavaCompile).configureEach {
+	options.compilerArgs += ["-source", "" + oldestJava, "-target", "" + oldestJava]
+}
+
 // Register different Skript testing tasks
-createTestTask('quickTest', 'src/test/skript/environments/main/paper-1.19.json', false, 17)
-createTestTask('skriptTest', 'src/test/skript/environments/main', false, 17)
-createTestTask('skriptTestJava8', 'src/test/skript/environments/extra', false, 8)
+createTestTask('quickTest', 'src/test/skript/environments/main/' + latestEnv, false, latestJava)
+createTestTask('skriptTest', 'src/test/skript/environments/main', false, latestJava)
+createTestTask('skriptTestJava8', 'src/test/skript/environments/extra', false, oldestJava)
 createTestTask('skriptTestDev', 'src/test/skript/environments/main/' + (project.property('testEnv') == null
-	? 'paper-1.19.json' : project.property('testEnv') + '.json'), true, Integer.parseInt(project.property('testEnvJavaVersion') == null
-	? 17 : project.property('testEnvJavaVersion')))
+	? latestEnv : project.property('testEnv') + '.json'), true, Integer.parseInt(project.property('testEnvJavaVersion') == null
+	? latestJava : project.property('testEnvJavaVersion')))
 tasks.register('skriptTestFull') {dependsOn skriptTestJava8, skriptTest}
 tasks.register("genDocs", JavaExec) {
 	dependsOn jar, testNaming
 	javaLauncher = javaToolchains.launcherFor {
         languageVersion = JavaLanguageVersion.of(Integer.parseInt(project.property('testEnvJavaVersion') == null
-			? 17 : project.property('testEnvJavaVersion')))
+			? latestJava : project.property('testEnvJavaVersion')))
     }
 	group = 'execution'
 	classpath = files([
@@ -215,7 +219,7 @@ tasks.register("genDocs", JavaExec) {
 		'test_runners',
 		'src/test/skript/tests',
 		'src/test/resources/runner_data',
-		'src/test/skript/environments/main/' + (project.property('testEnv') == null ? 'paper-1.19.json' : project.property('testEnv') + '.json'),
+		'src/test/skript/environments/main/' + (project.property('testEnv') == null ? latestEnv : project.property('testEnv') + '.json'),
 		false,
 		true
 	]
