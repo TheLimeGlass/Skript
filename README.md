@@ -68,8 +68,8 @@ server, but our build script will create one for you. Running the tests is easy:
 ```
 
 <code>quickTest</code> runs the test suite on newest supported server version.
-<code>skriptTest</code> (1.17+) runs the tests on latest support Java version.
-<code>skriptTestJava8</code> (1.13-1.16) runs the tests on the oldest support Java version.
+<code>skriptTest</code> (1.17+) runs the tests on the latest supported Java version.
+<code>skriptTestJava8</code> (1.13-1.16) runs the tests on the oldest supported Java version.
 <code>skriptTestFull</code> runs both skriptTestJava8 and skriptTest
 
 By running the tests, you agree to Mojang's End User License Agreement.
