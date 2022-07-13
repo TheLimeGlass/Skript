@@ -21,7 +21,7 @@ jobs:
             - name: Build Skript
               run: ./gradlew nightlyRelease
             - name: Run test scripts
-              run: ./gradlew clean skriptTestJava12
+              run: ./gradlew clean skriptTestJava8
             - name: Upload Nightly Build
               uses: actions/upload-artifact@v3
               if: success()
