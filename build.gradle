@@ -12,7 +12,7 @@ plugins {
 }
 
 tasks.withType(JavaCompile).configureEach {
-	options.compilerArgs += ["-source", "12", "-target", "12"]
+	options.compilerArgs += ["-source", "8", "-target", "8"]
 }
 
 allprojects {
@@ -193,11 +193,11 @@ void createTestTask(String name, String environments, boolean devMode, int javaV
 // Register different Skript testing tasks
 createTestTask('quickTest', 'src/test/skript/environments/main/paper-1.19.json', false, 17)
 createTestTask('skriptTest', 'src/test/skript/environments/main', false, 17)
-createTestTask('skriptTestJava12', 'src/test/skript/environments/extra', false, 12)
+createTestTask('skriptTestJava8', 'src/test/skript/environments/extra', false, 8)
 createTestTask('skriptTestDev', 'src/test/skript/environments/main/' + (project.property('testEnv') == null
 	? 'paper-1.19.json' : project.property('testEnv') + '.json'), true, Integer.parseInt(project.property('testEnvJavaVersion') == null
 	? 17 : project.property('testEnvJavaVersion')))
-tasks.register('skriptTestFull') {dependsOn skriptTestJava12, skriptTest}
+tasks.register('skriptTestFull') {dependsOn skriptTestJava8, skriptTest}
 
 // Build flavor configurations
 task githubResources(type: ProcessResources) {
