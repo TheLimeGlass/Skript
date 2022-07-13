@@ -45,7 +45,6 @@ public class TestMode {
 	 * Otherwise, all tests are run, results are written in JSON format to
 	 * {@link #RESULTS_FILE} as in {@link TestResults}.
 	 */
-	@SuppressWarnings("null")
 	public static final Path TEST_DIR = ENABLED ? Paths.get(System.getProperty(ROOT + "dir")) : null;
 	
 	/**
@@ -62,7 +61,6 @@ public class TestMode {
 	/**
 	 * Path to file where to save results in JSON format.
 	 */
-	@SuppressWarnings("null")
 	public static final Path RESULTS_FILE = ENABLED ? Paths.get(System.getProperty(ROOT + "results")) : null;
 	
 	/**
@@ -71,4 +69,5 @@ public class TestMode {
 	@Nullable
 	public static File lastTestFile;
 	public static boolean docs_failed;
+
 }
