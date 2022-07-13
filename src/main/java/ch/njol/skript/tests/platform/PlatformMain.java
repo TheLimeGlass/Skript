@@ -40,7 +40,6 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonSyntaxException;
 
 import ch.njol.skript.tests.TestResults;
-import ch.njol.skript.tests.runner.TestMode;
 import ch.njol.util.NonNullPair;
 
 /**
