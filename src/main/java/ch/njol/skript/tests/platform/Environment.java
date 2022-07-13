@@ -223,7 +223,7 @@ public class Environment {
 	public TestResults runTests(Path runnerRoot, Path testsRoot, boolean devMode, String... jvmArgs) throws IOException, InterruptedException {
 		Path env = runnerRoot.resolve(name);
 		List<String> args = new ArrayList<>();
-		args.add("java");
+		args.add(System.getProperty("java.home") + File.separator + "bin" + File.separator + "java");
 		args.add("-ea");
 		args.add("-Dskript.testing.enabled=true");
 		args.add("-Dskript.testing.dir=" + testsRoot);
