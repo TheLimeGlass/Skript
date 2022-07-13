@@ -64,7 +64,7 @@ Skript has some tests written in Skript. Running them requires a Minecraft
 server, but our build script will create one for you. Running the tests is easy:
 
 ```
-./gradlew (quickTest|skriptTest|skriptTestFull|skriptTestJava8)
+./gradlew (quickTest|skriptTest|skriptTestJava8|skriptTestFull)
 ```
 
 <code>quickTest</code> runs the test suite on newest supported server version.
