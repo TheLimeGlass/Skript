@@ -186,7 +186,7 @@ void createTestTask(String name, String environments, boolean devMode, int javaV
 	}
 }
 
-def latestEnv = 'paper-1.19.json'
+def latestEnv = 'java17/paper-1.19.json'
 def latestJava = 17
 def oldestJava = 8
 
@@ -195,10 +195,10 @@ tasks.withType(JavaCompile).configureEach {
 }
 
 // Register different Skript testing tasks
-createTestTask('quickTest', 'src/test/skript/environments/main/' + latestEnv, false, latestJava)
-createTestTask('skriptTest', 'src/test/skript/environments/main', false, latestJava)
-createTestTask('skriptTestJava8', 'src/test/skript/environments/old', false, oldestJava)
-createTestTask('skriptTestDev', 'src/test/skript/environments/main/' + (project.property('testEnv') == null
+createTestTask('quickTest', 'src/test/skript/environments/' + latestEnv, false, latestJava)
+createTestTask('skriptTest', 'src/test/skript/environments/java17', false, latestJava)
+createTestTask('skriptTestJava8', 'src/test/skript/environments/java8', false, oldestJava)
+createTestTask('skriptTestDev', 'src/test/skript/environments/' + (project.property('testEnv') == null
 	? latestEnv : project.property('testEnv') + '.json'), true, Integer.parseInt(project.property('testEnvJavaVersion') == null
 	? latestJava : project.property('testEnvJavaVersion')))
 tasks.register('skriptTestFull') {dependsOn skriptTestJava8, skriptTest}
@@ -219,7 +219,7 @@ tasks.register("genDocs", JavaExec) {
 		'test_runners',
 		'src/test/skript/tests',
 		'src/test/resources/runner_data',
-		'src/test/skript/environments/main/' + (project.property('testEnv') == null ? latestEnv : project.property('testEnv') + '.json'),
+		'src/test/skript/environments/' + (project.property('testEnv') == null ? latestEnv : project.property('testEnv') + '.json'),
 		false,
 		true
 	]
