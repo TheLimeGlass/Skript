@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import ch.njol.skript.log.TimingLogHandler;
+import ch.njol.skript.registrations.Classes;
 import ch.njol.util.OpenCloseable;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
@@ -39,11 +40,15 @@ import org.eclipse.jdt.annotation.Nullable;
 import ch.njol.skript.aliases.Aliases;
 import ch.njol.skript.command.CommandHelp;
 import ch.njol.skript.config.Config;
+import ch.njol.skript.config.EntryNode;
 import ch.njol.skript.doc.HTMLGenerator;
+import ch.njol.skript.lang.ParseContext;
 import ch.njol.skript.localization.ArgsMessage;
 import ch.njol.skript.localization.Language;
 import ch.njol.skript.localization.PluralizingArgsMessage;
+import ch.njol.skript.log.ParseLogHandler;
 import ch.njol.skript.log.RedirectingLogHandler;
+import ch.njol.skript.log.SkriptLogger;
 import ch.njol.skript.tests.runner.SkriptTestEvent;
 import ch.njol.skript.tests.runner.TestMode;
 import ch.njol.skript.tests.runner.TestTracker;
@@ -83,9 +88,10 @@ public class SkriptCommand implements CommandExecutor {
 		if (new File(Skript.getInstance().getDataFolder() + "/doc-templates").exists()) {
 			skriptCommandHelp.add("gen-docs");
 		}
-		if (TestMode.DEV_MODE) { // Add command to run individual tests
+		if (TestMode.DEV_MODE) // Add command to run individual tests
 			skriptCommandHelp.add("test");
-		}
+		if (TestMode.GEN_DOCS)
+			skriptCommandHelp.add("gen-docs");
 	}
 	
 	private static final ArgsMessage m_reloading = new ArgsMessage(CONFIG_NODE + ".reload.reloading");
@@ -356,7 +362,8 @@ public class SkriptCommand implements CommandExecutor {
 			} else if (args[0].equalsIgnoreCase("gen-docs")) {
 				File templateDir = new File(Skript.getInstance().getDataFolder() + "/doc-templates/");
 				if (!templateDir.exists()) {
-					Skript.info(sender, "Documentation templates not found. Cannot generate docs!");
+					Skript.error(sender, "Documentation templates not found. Cannot generate docs!");
+					TestMode.docs_failed = true;
 					return true;
 				}
 				File outputDir = new File(Skript.getInstance().getDataFolder() + "/docs");
@@ -379,7 +386,7 @@ public class SkriptCommand implements CommandExecutor {
 					TestMode.lastTestFile = script;
 				}
 				if (!script.exists()) {
-					Skript.error(sender, "Test script doesn't exist!");
+					Skript.info(sender, "Test script doesn't exist!");
 					return true;
 				}
 				

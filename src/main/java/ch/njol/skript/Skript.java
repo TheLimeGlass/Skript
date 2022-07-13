@@ -612,13 +612,26 @@ public final class Skript extends JavaPlugin implements Listener {
 
 				Bukkit.getScheduler().runTaskLater(Skript.this, () -> {
 					if (TestMode.ENABLED) { // Ignore late init (scripts, etc.) in test mode
+						if (TestMode.GEN_DOCS) {
+							Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "skript gen-docs");
+							String results = new Gson().toJson(TestTracker.collectResults());
+							try {
+								Files.write(TestMode.RESULTS_FILE, results.getBytes(StandardCharsets.UTF_8));
+							} catch (IOException e) {
+								Skript.exception(e, "Failed to write test results.");
+							}
+							// Delay server shutdown to stop the server from crashing because the current tick takes a long time due to all the tests
+							Bukkit.getScheduler().runTaskLater(Skript.this, () -> {
+								Bukkit.getServer().shutdown();
+							}, 5);
+							return;
+						}
 						if (TestMode.DEV_MODE) { // Run tests NOW!
 							info("Test development mode enabled. Test scripts are at " + TestMode.TEST_DIR);
 						} else {
 							info("Running all tests from " + TestMode.TEST_DIR);
 
 							// Treat parse errors as fatal testing failure
-							@SuppressWarnings("null")
 							CountingLogHandler errorCounter = new CountingLogHandler(Level.SEVERE);
 							try {
 								errorCounter.start();
@@ -654,7 +667,6 @@ public final class Skript extends JavaPlugin implements Listener {
 							}, 5);
 
 						}
-
 						return;
 					}
 				}, 100);

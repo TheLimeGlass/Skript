@@ -38,6 +38,7 @@ import org.apache.commons.lang.StringUtils;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonSyntaxException;
+
 import ch.njol.skript.tests.TestResults;
 import ch.njol.util.NonNullPair;
 
@@ -60,6 +61,9 @@ public class PlatformMain {
 		Path envsRoot = Paths.get(args[3]);
 		assert envsRoot != null;
 		boolean devMode = "true".equals(args[4]);
+		boolean genDocs = false;
+		if (args.length > 5)
+			genDocs = "true".equals(args[5]);
 		
 		// Load environments
 		List<Environment> envs;
@@ -82,14 +86,16 @@ public class PlatformMain {
 		Set<String> allTests = new HashSet<>();
 		Map<String, List<NonNullPair<Environment, String>>> failures = new HashMap<>();
 		
+		boolean docs_failed = false;
 		// Run tests and collect the results
 		envs.sort(Comparator.comparing(Environment::getName));
 		for (Environment env : envs) {
 			System.out.println("Starting testing on " + env.getName());
 			env.initialize(dataRoot, runnerRoot, false);
-			TestResults results = env.runTests(runnerRoot, testsRoot, devMode, "-Xmx5G");
+			TestResults results = env.runTests(runnerRoot, testsRoot, devMode, genDocs, "-Xmx5G");
 			
 			// Collect results
+			docs_failed = results.docsFailed();
 			allTests.addAll(results.getSucceeded());
 			allTests.addAll(results.getFailed().keySet());
 			for (Map.Entry<String, String> fail : results.getFailed().entrySet()) {
@@ -98,6 +104,11 @@ public class PlatformMain {
 				failures.computeIfAbsent(fail.getKey(), (k) -> new ArrayList<>())
 						.add(new NonNullPair<>(env, error));
 			}
+		}
+		if (docs_failed) {
+			System.err.println("Documentation templates not found. Cannot generate docs!");
+			System.exit(2);
+			return;
 		}
 		
 		// Sort results in alphabetical order

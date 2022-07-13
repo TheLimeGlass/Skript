@@ -31,13 +31,15 @@ public class TestResults {
 	 * Succeeded tests.
 	 */
 	private final Set<String> succeeded;
+	private final boolean docs_failed;
 	
 	/**
 	 * Failed tests.
 	 */
 	private final Map<String, String> failed;
 	
-	public TestResults(Set<String> succeeded, Map<String, String> failed) {
+	public TestResults(Set<String> succeeded, Map<String, String> failed, boolean docs_failed) {
+		this.docs_failed = docs_failed;
 		this.succeeded = succeeded;
 		this.failed = failed;
 	}
@@ -48,6 +50,10 @@ public class TestResults {
 	
 	public Map<String, String> getFailed() {
 		return failed;
+	}
+
+	public boolean docsFailed() {
+		return docs_failed;
 	}
 	
 	@SuppressWarnings("null")

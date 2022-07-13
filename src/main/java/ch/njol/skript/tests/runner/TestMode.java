@@ -53,6 +53,11 @@ public class TestMode {
 	 * to be loaded and ran, and prints results to chat or console.
 	 */
 	public static final boolean DEV_MODE = ENABLED && "true".equals(System.getProperty(ROOT + "devMode"));
+
+	/**
+	 * If Skript should run the gen-docs command.
+	 */
+	public static final boolean GEN_DOCS = "true".equals(System.getProperty(ROOT + "genDocs"));
 	
 	/**
 	 * Path to file where to save results in JSON format.
@@ -65,4 +70,5 @@ public class TestMode {
 	 */
 	@Nullable
 	public static File lastTestFile;
+	public static boolean docs_failed;
 }

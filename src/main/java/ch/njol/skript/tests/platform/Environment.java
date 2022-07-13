@@ -87,7 +87,6 @@ public class Environment {
 		@Nullable
 		private transient String source;
 
-		@SuppressWarnings("ConstantConditions")
 		public PaperResource(String version, String target) {
 			super(null, target);
 			this.version = version;
@@ -220,7 +219,7 @@ public class Environment {
 		}
 	}
 
-	public TestResults runTests(Path runnerRoot, Path testsRoot, boolean devMode, String... jvmArgs) throws IOException, InterruptedException {
+	public TestResults runTests(Path runnerRoot, Path testsRoot, boolean devMode, boolean genDocs, String... jvmArgs) throws IOException, InterruptedException {
 		Path env = runnerRoot.resolve(name);
 		List<String> args = new ArrayList<>();
 		args.add(System.getProperty("java.home") + File.separator + "bin" + File.separator + "java");
@@ -228,6 +227,7 @@ public class Environment {
 		args.add("-Dskript.testing.enabled=true");
 		args.add("-Dskript.testing.dir=" + testsRoot);
 		args.add("-Dskript.testing.devMode=" + devMode);
+		args.add("-Dskript.testing.genDocs=" + genDocs);
 		args.add("-Dskript.testing.results=test_results.json");
 		args.add("-Ddisable.watchdog=true");
 		args.addAll(Arrays.asList(jvmArgs));
