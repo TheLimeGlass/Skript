@@ -228,6 +228,8 @@ public class Environment {
 		args.add("-Dskript.testing.dir=" + testsRoot);
 		args.add("-Dskript.testing.devMode=" + devMode);
 		args.add("-Dskript.testing.genDocs=" + genDocs);
+		if (genDocs)
+			args.add("-Dskript.forceregisterhooks");
 		args.add("-Dskript.testing.results=test_results.json");
 		args.add("-Ddisable.watchdog=true");
 		args.addAll(Arrays.asList(jvmArgs));

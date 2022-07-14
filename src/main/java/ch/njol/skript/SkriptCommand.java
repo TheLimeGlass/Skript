@@ -26,9 +26,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import ch.njol.skript.log.TimingLogHandler;
-import ch.njol.skript.registrations.Classes;
-import ch.njol.util.OpenCloseable;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -40,21 +37,19 @@ import org.eclipse.jdt.annotation.Nullable;
 import ch.njol.skript.aliases.Aliases;
 import ch.njol.skript.command.CommandHelp;
 import ch.njol.skript.config.Config;
-import ch.njol.skript.config.EntryNode;
 import ch.njol.skript.doc.HTMLGenerator;
-import ch.njol.skript.lang.ParseContext;
 import ch.njol.skript.localization.ArgsMessage;
 import ch.njol.skript.localization.Language;
 import ch.njol.skript.localization.PluralizingArgsMessage;
-import ch.njol.skript.log.ParseLogHandler;
 import ch.njol.skript.log.RedirectingLogHandler;
-import ch.njol.skript.log.SkriptLogger;
+import ch.njol.skript.log.TimingLogHandler;
 import ch.njol.skript.tests.runner.SkriptTestEvent;
 import ch.njol.skript.tests.runner.TestMode;
 import ch.njol.skript.tests.runner.TestTracker;
 import ch.njol.skript.util.ExceptionUtils;
 import ch.njol.skript.util.FileUtils;
 import ch.njol.skript.util.SkriptColor;
+import ch.njol.util.OpenCloseable;
 import ch.njol.util.StringUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -85,13 +80,10 @@ public class SkriptCommand implements CommandExecutor {
 		).add("help");
 	
 	static {
-		if (new File(Skript.getInstance().getDataFolder() + "/doc-templates").exists()) {
+		if (TestMode.GEN_DOCS || new File(Skript.getInstance().getDataFolder() + "/doc-templates").exists())
 			skriptCommandHelp.add("gen-docs");
-		}
 		if (TestMode.DEV_MODE) // Add command to run individual tests
 			skriptCommandHelp.add("test");
-		if (TestMode.GEN_DOCS)
-			skriptCommandHelp.add("gen-docs");
 	}
 	
 	private static final ArgsMessage m_reloading = new ArgsMessage(CONFIG_NODE + ".reload.reloading");
