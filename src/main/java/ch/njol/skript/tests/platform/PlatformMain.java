@@ -86,7 +86,7 @@ public class PlatformMain {
 		Set<String> allTests = new HashSet<>();
 		Map<String, List<NonNullPair<Environment, String>>> failures = new HashMap<>();
 		
-		boolean docs_failed = false;
+		boolean docsFailed = false;
 		// Run tests and collect the results
 		envs.sort(Comparator.comparing(Environment::getName));
 		for (Environment env : envs) {
@@ -95,7 +95,7 @@ public class PlatformMain {
 			TestResults results = env.runTests(runnerRoot, testsRoot, devMode, genDocs, "-Xmx5G");
 			
 			// Collect results
-			docs_failed = results.docsFailed();
+			docsFailed = results.docsFailed();
 			allTests.addAll(results.getSucceeded());
 			allTests.addAll(results.getFailed().keySet());
 			for (Map.Entry<String, String> fail : results.getFailed().entrySet()) {
@@ -105,12 +105,13 @@ public class PlatformMain {
 						.add(new NonNullPair<>(env, error));
 			}
 		}
-		if (docs_failed) {
+
+		if (docsFailed) {
 			System.err.println("Documentation templates not found. Cannot generate docs!");
 			System.exit(2);
 			return;
 		}
-		
+
 		// Sort results in alphabetical order
 		List<String> succeeded = allTests.stream().filter(name -> !failures.containsKey(name)).collect(Collectors.toList());
 		Collections.sort(succeeded);
@@ -135,4 +136,5 @@ public class PlatformMain {
 		}
 		System.out.printf("%n%s", StringUtils.repeat("-", 60));
 	}
+
 }

@@ -264,9 +264,8 @@ public class Environment {
 		}
 
 		int code = process.waitFor();
-		if (code != 0) {
+		if (code != 0)
 			throw new IOException("environment returned with code " + code);
-		}
 
 		// Read test results
 		TestResults results = new Gson().fromJson(new String(Files.readAllBytes(env.resolve("test_results.json"))), TestResults.class);
