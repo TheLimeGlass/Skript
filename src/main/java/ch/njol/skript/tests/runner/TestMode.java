@@ -68,6 +68,6 @@ public class TestMode {
 	 */
 	@Nullable
 	public static File lastTestFile;
-	public static boolean docs_failed;
+	public static boolean docsFailed;
 
 }
