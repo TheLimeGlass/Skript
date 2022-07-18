@@ -63,7 +63,7 @@ public class ExprSets extends SimpleExpression<Object> {
 		Skript.registerExpression(ExprSets.class, Object.class, ExpressionType.COMBINED,
 				"[(all [[of] the]|the|every)] item(s|[ ]types)", "[(all [[of] the]|the)] items of type[s] %itemtypes%",
 				"[(all [[of] the]|the|every)] block(s|[ ]types)", "[(all [[of] the]|the)] blocks of type[s] %itemtypes%",
-				"([all] [[of] the] colo[u]rs|(the|every) colo[u]r)");
+				"([(all of| the)] colo[u]rs|(the|every) colo[u]r)");
 	}
 
 	@Nullable
@@ -174,7 +174,7 @@ public class ExprSets extends SimpleExpression<Object> {
 		if (event == null)
 			return "sets of data. Pattern " + pattern;
 		if (pattern == 4)
-			return "colours!";
+			return "colours";
 		return (pattern < 2 ? "blocks" : "items") + (types != null ? " of type" + (types.isSingle() ? "" : "s") + " " + types.toString(event, debug) : "");
 	}
 	
