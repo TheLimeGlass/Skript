@@ -36,6 +36,8 @@ import org.bukkit.event.Event;
 import org.bukkit.inventory.ItemStack;
 import org.eclipse.jdt.annotation.Nullable;
 
+import com.google.common.reflect.TypeToken;
+
 import java.util.Iterator;
 import java.util.Optional;
 import java.util.Spliterators;
@@ -66,7 +68,7 @@ public interface Expression<T> extends SyntaxElement, Debuggable {
 	 */
 	@Nullable
 	T getSingle(Event e);
-
+	
 	/**
 	 * Get an optional of the single value of this expression.
 	 * <p>
@@ -100,9 +102,10 @@ public interface Expression<T> extends SyntaxElement, Debuggable {
 	 * @param converter The converter to do the convertering to the type.
 	 * @return The values completed by the converter.
 	 */
+	@SuppressWarnings({"unchecked", "serial"})
 	public default <G> G[] get(Event event, Converter<? super T, ? extends G> converter) {
 		assert converter != null;
-		return Converters.convertUnsafe(getArray(event), getReturnType(), converter);
+		return Converters.convertUnsafe(getArray(event), (Class<G>) new TypeToken<G>(converter.getClass()){}.getRawType(), converter);
 	}
 	
 	/**
