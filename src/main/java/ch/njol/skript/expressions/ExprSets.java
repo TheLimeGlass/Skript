@@ -47,9 +47,6 @@ import ch.njol.util.coll.iterator.ArrayIterator;
 import ch.njol.util.coll.iterator.CheckedIterator;
 import ch.njol.util.coll.iterator.IteratorIterable;
 
-/**
- * @author Peter Güttinger
- */
 @Name("Sets")
 @Description("Collection sets of items or blocks of a specific type or colours, useful for looping.")
 @Examples({"loop items of type ore and log:",
