@@ -159,7 +159,7 @@ tasks.register('testNaming') {
 }
 
 // Create a test task with given name, environments dir/file, dev mode and java version.
-void createTestTask(String name, String environments, boolean devMode, int javaVersion) {
+void createTestTask(String name, String environments, boolean devMode, int javaVersion, boolean genDocs) {
 	tasks.register(name, JavaExec) {
 		dependsOn jar, testNaming
 		javaLauncher = javaToolchains.launcherFor {
@@ -180,7 +180,8 @@ void createTestTask(String name, String environments, boolean devMode, int javaV
 			'src/test/skript/tests',
 			'src/test/resources/runner_data',
 			environments,
-			devMode
+			devMode,
+			genDocs
 		]
 	}
 }
