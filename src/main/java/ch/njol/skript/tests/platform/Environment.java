@@ -222,6 +222,8 @@ public class Environment {
 	@Nullable
 	public TestResults runTests(Path runnerRoot, Path testsRoot, boolean devMode, boolean genDocs, String... jvmArgs) throws IOException, InterruptedException {
 		Path env = runnerRoot.resolve(name);
+		Path resultsPath = env.resolve("test_results.json");
+		Files.deleteIfExists(resultsPath);
 		List<String> args = new ArrayList<>();
 		args.add(System.getProperty("java.home") + File.separator + "bin" + File.separator + "java");
 		args.add("-ea");
@@ -269,10 +271,9 @@ public class Environment {
 			throw new IOException("environment returned with code " + code);
 
 		// Read test results
-		Path path = env.resolve("test_results.json");
-		if (!Files.exists(path))
+		if (!Files.exists(resultsPath))
 			return null;
-		TestResults results = new Gson().fromJson(new String(Files.readAllBytes(path)), TestResults.class);
+		TestResults results = new Gson().fromJson(new String(Files.readAllBytes(resultsPath)), TestResults.class);
 		assert results != null;
 		return results;
 	}
