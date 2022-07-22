@@ -120,6 +120,12 @@ public class PlatformMain {
 			return;
 		}
 
+		// Task was to generate docs, no test results other than docsFailed.
+		if (genDocs) {
+			System.exit(0);
+			return;
+		}
+
 		// Sort results in alphabetical order
 		List<String> succeeded = allTests.stream().filter(name -> !failures.containsKey(name)).collect(Collectors.toList());
 		Collections.sort(succeeded);

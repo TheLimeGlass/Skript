@@ -263,7 +263,7 @@ public class Environment {
 						System.exit(1);
 					}
 				}
-			}, 8 * 60_000);
+			}, 8 * 60_000); // 8 minutes.
 		}
 
 		int code = process.waitFor();

@@ -354,7 +354,7 @@ public class SkriptCommand implements CommandExecutor {
 			} else if (args[0].equalsIgnoreCase("gen-docs")) {
 				File templateDir = new File(Skript.getInstance().getDataFolder() + "/doc-templates/");
 				if (!templateDir.exists()) {
-					Skript.error(sender, "Documentation templates not found. Cannot generate docs!");
+					Skript.error(sender, "Cannot generate docs! Documentation templates not found at 'plugins/Skript/doc-templates/'");
 					TestMode.docsFailed = true;
 					return true;
 				}

@@ -202,28 +202,9 @@ createTestTask('skriptTestDev', 'src/test/skript/environments/' + (project.prope
 	? latestEnv : project.property('testEnv') + '.json'), true, Integer.parseInt(project.property('testEnvJavaVersion') == null
 	? latestJava : project.property('testEnvJavaVersion')), false)
 tasks.register('skriptTest') {dependsOn skriptTestJava8, skriptTestJava17}
-tasks.register("genDocs", JavaExec) {
-	dependsOn jar, testNaming
-	javaLauncher = javaToolchains.launcherFor {
-        languageVersion = JavaLanguageVersion.of(Integer.parseInt(project.property('testEnvJavaVersion') == null
-			? latestJava : project.property('testEnvJavaVersion')))
-    }
-	group = 'execution'
-	classpath = files([
-		'build' + File.separator + 'libs' + File.separator + 'Skript.jar',
-		project.configurations.runtimeClasspath.find { it.name.startsWith('gson') },
-		sourceSets.main.runtimeClasspath
-	])
-	main = 'ch.njol.skript.tests.platform.PlatformMain'
-	args = [
-		'test_runners',
-		'src/test/skript/tests',
-		'src/test/resources/runner_data',
-		'src/test/skript/environments/' + (project.property('testEnv') == null ? latestEnv : project.property('testEnv') + '.json'),
-		false,
-		true
-	]
-}
+createTestTask('genDocs', 'src/test/skript/environments/' + (project.property('testEnv') == null
+	? latestEnv : project.property('testEnv') + '.json'), false, Integer.parseInt(project.property('testEnvJavaVersion') == null
+	? latestJava : project.property('testEnvJavaVersion')), true)
 
 // Build flavor configurations
 task githubResources(type: ProcessResources) {
