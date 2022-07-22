@@ -25,9 +25,9 @@ package ch.njol.skript;
 public enum ServerPlatform {
 	
 	/**
-	 * Unknown Bukkit revision. This is probably a bad thing...
+	 * Unknown revision. This is probably a bad thing...
 	 */
-	BUKKIT_UNKNOWN("Unknown Bukkit", false, false),
+	UNKNOWN("Unknown", false, false),
 	
 	/**
 	 * CraftBukkit, but not Spigot or Paper.

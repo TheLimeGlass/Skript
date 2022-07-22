@@ -1,19 +1,27 @@
 import com.github.jengelman.gradle.plugins.shadow.tasks.ConfigureShadowRelocation
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
+import org.spongepowered.plugin.metadata.model.PluginDependency
+import org.spongepowered.gradle.plugin.config.PluginLoaders
 import org.apache.tools.ant.filters.ReplaceTokens
 
 import java.time.LocalTime
 
 plugins {
+	id 'org.spongepowered.gradle.plugin' version '2.0.2'
 	id 'com.github.johnrengelman.shadow' version '7.1.2'
 	id 'com.github.hierynomus.license' version '0.16.1'
 	id 'maven-publish'
+	id 'java-library'
+	id 'eclipse'
 	id 'java'
 }
+
+group = 'ch.njol.skript'
 
 allprojects {
 	repositories {
 		mavenCentral()
+		jcenter()
 		maven { url 'https://hub.spigotmc.org/nexus/content/repositories/snapshots/' }
 		maven { url 'https://oss.sonatype.org/content/repositories/snapshots/' }
 		maven { url 'https://repo.papermc.io/repository/maven-public/' }
@@ -23,8 +31,8 @@ allprojects {
 
 dependencies {
 	shadow group: 'io.papermc', name: 'paperlib', version: '1.0.7'
-	shadow group: 'org.bstats', name: 'bstats-bukkit', version: '3.0.0'
-	implementation group: 'io.papermc.paper', name: 'paper-api', version: '1.19-R0.1-SNAPSHOT'
+	shadow group: 'org.bstats', name: 'bstats-sponge', version: '3.0.0'
+	implementation group: 'org.spongepowered', name: 'spongeapi', version: '8.0.0'
 	implementation group: 'org.eclipse.jdt', name: 'org.eclipse.jdt.annotation', version: '2.2.600'
 	implementation group: 'com.google.code.findbugs', name: 'findbugs', version: '3.0.1'
 	implementation group: 'com.sk89q.worldguard', name: 'worldguard-legacy', version: '7.0.0-SNAPSHOT'

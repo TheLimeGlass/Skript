@@ -25,6 +25,7 @@ import java.lang.Thread.UncaughtExceptionHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.net.URI;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -41,6 +42,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Set;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
@@ -52,28 +54,26 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipException;
 import java.util.zip.ZipFile;
 
-import org.bstats.bukkit.Metrics;
+import org.bstats.sponge.Metrics;
+import org.apache.logging.log4j.Logger;
 import org.bstats.charts.SimplePie;
-import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
-import org.bukkit.Material;
-import org.bukkit.Server;
-import org.bukkit.command.CommandSender;
-import org.bukkit.command.PluginCommand;
-import org.bukkit.entity.Player;
-import org.bukkit.event.Event;
-import org.bukkit.event.EventHandler;
-import org.bukkit.event.Listener;
-import org.bukkit.event.player.PlayerCommandPreprocessEvent;
-import org.bukkit.event.player.PlayerJoinEvent;
-import org.bukkit.event.server.PluginDisableEvent;
-import org.bukkit.event.server.ServerCommandEvent;
-import org.bukkit.plugin.Plugin;
-import org.bukkit.plugin.PluginDescriptionFile;
-import org.bukkit.plugin.java.JavaPlugin;
 import org.eclipse.jdt.annotation.Nullable;
+import org.spongepowered.api.MinecraftVersion;
+import org.spongepowered.api.Platform;
+import org.spongepowered.api.Server;
+import org.spongepowered.api.Sponge;
+import org.spongepowered.api.config.DefaultConfig;
+import org.spongepowered.api.event.Event;
+import org.spongepowered.api.event.EventListener;
+import org.spongepowered.api.event.Listener;
+import org.spongepowered.api.event.block.ChangeBlockEvent;
+import org.spongepowered.api.event.lifecycle.StartedEngineEvent;
+import org.spongepowered.plugin.PluginContainer;
+import org.spongepowered.plugin.builtin.jvm.Plugin;
+import org.spongepowered.plugin.metadata.PluginMetadata;
 
 import com.google.gson.Gson;
+import com.google.inject.Inject;
 
 import ch.njol.skript.aliases.Aliases;
 import ch.njol.skript.bukkitutil.BurgerHelper;
@@ -172,37 +172,35 @@ import ch.njol.util.coll.iterator.EnumerationIterable;
  * @see Comparators#registerComparator(Class, Class, Comparator)
  * @see Converters#registerConverter(Class, Class, Converter)
  */
-public final class Skript extends JavaPlugin implements Listener {
-	
-	// ================ PLUGIN ================
-	
+@Plugin("Skript")
+public final class Skript {
+
+	private static Version minecraftVersion = new Version(666), UNKNOWN_VERSION = new Version(666);
+	private static ServerPlatform serverPlatform = ServerPlatform.UNKNOWN; // Start with unknown... onLoad changes this
+
 	@Nullable
-	private static Skript instance = null;
-	
-	private static boolean disabled = false;
-	private static boolean partDisabled = false;
-	
-	public static Skript getInstance() {
-		final Skript i = instance;
-		if (i == null)
-			throw new IllegalStateException();
-		return i;
-	}
-	
+	private static Skript instance;
+
+	@Inject
+	@DefaultConfig(sharedRoot = false)
+	private Path configFilePath;
+
+	@Inject
+    private Logger logger;
+
 	/**
 	 * Current updater instance used by Skript.
 	 */
 	@Nullable
 	private SkriptUpdater updater;
-	
-	public Skript() throws IllegalStateException {
-		if (instance != null)
-			throw new IllegalStateException("Cannot create multiple instances of Skript!");
-		instance = this;
+
+	private final PluginContainer pluginContainer;
+
+	@Inject
+	public Skript(Logger logger, PluginContainer pluginContainer) {
+		this.pluginContainer = pluginContainer;
+		this.logger = logger;
 	}
-	
-	private static Version minecraftVersion = new Version(666), UNKNOWN_VERSION = new Version(666);
-	private static ServerPlatform serverPlatform = ServerPlatform.BUKKIT_UNKNOWN; // Start with unknown... onLoad changes this
 
 	/**
 	 * Check minecraft version and assign it to minecraftVersion field
@@ -210,31 +208,33 @@ public final class Skript extends JavaPlugin implements Listener {
 	 * To fix {@link Utils#HEX_SUPPORTED} being assigned before minecraftVersion is properly assigned
 	 */
 	public static void updateMinecraftVersion() {
-		String bukkitV = Bukkit.getBukkitVersion();
-		Matcher m = Pattern.compile("\\d+\\.\\d+(\\.\\d+)?").matcher(bukkitV);
+		String version = Sponge.platform().minecraftVersion().name();
+		Matcher m = Pattern.compile("\\d+\\.\\d+(\\.\\d+)?").matcher(version);
 		if (!m.find()) {
 			minecraftVersion = new Version(666, 0, 0);
 		} else {
 			minecraftVersion = new Version("" + m.group());
 		}
 	}
-	
+
 	@Nullable
 	private static Version version = null;
-	
+
 	public static Version getVersion() {
 		final Version v = version;
 		if (v == null)
 			throw new IllegalStateException();
 		return v;
 	}
-	
+
 	public final static Message m_invalid_reload = new Message("skript.invalid reload"),
 			m_finished_loading = new Message("skript.finished loading");
-	
+
 	public static ServerPlatform getServerPlatform() {
 		if (classExists("net.glowstone.GlowServer")) {
 			return ServerPlatform.BUKKIT_GLOWSTONE; // Glowstone has timings too, so must check for it first
+		} else if (classExists("org.spongepowered.api.Sponge")) {
+			return ServerPlatform.SPONGE;
 		} else if (classExists("co.aikar.timings.Timings")) {
 			return ServerPlatform.BUKKIT_PAPER; // Could be Sponge, but it doesn't work at all at the moment
 		} else if (classExists("org.spigotmc.SpigotConfig")) {
@@ -243,7 +243,7 @@ public final class Skript extends JavaPlugin implements Listener {
 			// At some point, CraftServer got removed or moved
 			return ServerPlatform.BUKKIT_CRAFTBUKKIT;
 		} else { // Probably some ancient Bukkit implementation
-			return ServerPlatform.BUKKIT_UNKNOWN;
+			return ServerPlatform.UNKNOWN;
 		}
 	}
 
@@ -257,17 +257,17 @@ public final class Skript extends JavaPlugin implements Listener {
 		// Property returned should either be "Java HotSpot(TM) 32-Bit Server VM" or "OpenJDK 32-Bit Server VM" if 32-bit and using OracleJDK/OpenJDK
 		return System.getProperty("java.vm.name").contains("32");
 	}
-	
+
 	/**
 	 * Checks if server software and Minecraft version are supported.
 	 * Prints errors or warnings to console if something is wrong.
 	 * @return Whether Skript can continue loading at all.
 	 */
 	private static boolean checkServerPlatform() {
-		String bukkitV = Bukkit.getBukkitVersion();
-		Matcher m = Pattern.compile("\\d+\\.\\d+(\\.\\d+)?").matcher(bukkitV);
+		String version = Sponge.platform().minecraftVersion().name();
+		Matcher m = Pattern.compile("\\d+\\.\\d+(\\.\\d+)?").matcher(version);
 		if (!m.find()) {
-			Skript.error("The Bukkit version '" + bukkitV + "' does not contain a version number which is required for Skript to enable or disable certain features. " +
+			Skript.error("The Bukkit version '" + version + "' does not contain a version number which is required for Skript to enable or disable certain features. " +
 					"Skript will still work, but you might get random errors if you use features that are not available in your version of Bukkit.");
 			minecraftVersion = new Version(666, 0, 0);
 		} else {
@@ -303,58 +303,17 @@ public final class Skript extends JavaPlugin implements Listener {
 			Skript.warning("It will still probably work, but if it does not, you are on your own.");
 			Skript.warning("Skript officially supports Paper and Spigot.");
 		}
-		
 		// If nothing got triggered, everything is probably ok
 		return true;
 	}
 
-	private static final Set<Class<? extends Hook<?>>> disabledHookRegistrations = new HashSet<>();
-	private static boolean finishedLoadingHooks = false;
-
-	/**
-	 * Checks whether a hook has been enabled.
-	 * @param hook The hook to check.
-	 * @return Whether the hook is enabled.
-	 * @see #disableHookRegistration(Class[]) 
-	 */
-	public static boolean isHookEnabled(Class<? extends Hook<?>> hook) {
-		return !disabledHookRegistrations.contains(hook);
-	}
-
-	/**
-	 * @return whether hooks have been loaded,
-	 * and if {@link #disableHookRegistration(Class[])} won't error because of this.
-	 */
-	public static boolean isFinishedLoadingHooks() {
-		return finishedLoadingHooks;
-	}
-
-	/**
-	 * Disables the registration for the given hook classes. If Skript has been enabled, this method
-	 * will throw an API exception. It should be used in something like {@link JavaPlugin#onLoad()}.
-	 * @param hooks The hooks to disable the registration of.
-	 * @see #isHookEnabled(Class)    
-	 */
-	@SafeVarargs
-	public static void disableHookRegistration(Class<? extends Hook<?>>... hooks) {
-		if (finishedLoadingHooks) { // Hooks have been registered if Skript is enabled
-			throw new SkriptAPIException("Disabling hooks is not possible after Skript has been enabled!");
-		}
-		Collections.addAll(disabledHookRegistrations, hooks);
-	}
-	
-	@Override
-	public void onEnable() {
-		Bukkit.getPluginManager().registerEvents(this, this);
-		if (disabled) {
-			Skript.error(m_invalid_reload.toString());
-			setEnabled(false);
-			return;
-		}
-		
+	@Listener
+    public void onServerStart(StartedEngineEvent<Server> event) {
+		instance = this;
+		Sponge.eventManager().registerListeners(pluginContainer, this);
 		handleJvmArguments(); // JVM arguments
 		
-		version = new Version("" + getDescription().getVersion()); // Skript version
+		version = new Version("" + pluginContainer.metadata().version().getQualifier()); // Skript version
 		
 		getAddonInstance();
 		
@@ -366,13 +325,13 @@ public final class Skript extends JavaPlugin implements Listener {
 			Skript.exception(e, "Update checker could not be initialized.");
 		}
 		
-		if (!getDataFolder().isDirectory())
-			getDataFolder().mkdirs();
+		Files.createDirectories(configFilePath);
 		
-		File scripts = new File(getDataFolder(), SCRIPTSFOLDER);
-		File config = new File(getDataFolder(), "config.sk");
-		File features = new File(getDataFolder(), "features.sk");
-		File lang = new File(getDataFolder(), "lang");
+		File dataFolder = configFilePath.getParent().toFile();
+		File scripts = new File(dataFolder, SCRIPTSFOLDER);
+		File config = new File(dataFolder, "config.sk");
+		File features = new File(dataFolder, "features.sk");
+		File lang = new File(dataFolder, "lang");
 		if (!scripts.isDirectory() || !config.exists() || !features.exists() || !lang.exists()) {
 			ZipFile f = null;
 			try {
@@ -453,18 +412,13 @@ public final class Skript extends JavaPlugin implements Listener {
 		SkriptConfig.load();
 		
 		// Check server software, Minecraft version, etc.
-		if (!checkServerPlatform()) {
-			disabled = true; // Nothing was loaded, nothing needs to be unloaded
-			setEnabled(false); // Cannot continue; user got errors in console to tell what happened
+		if (!checkServerPlatform())
 			return;
-		}
 		
 		// Use the updater, now that it has been configured to (not) do stuff
 		if (updater != null) {
-			CommandSender console = Bukkit.getConsoleSender();
-			assert console != null;
 			assert updater != null;
-			updater.updateCheck(console);
+			updater.updateCheck(logger);
 		}
 
 		try {
@@ -484,7 +438,6 @@ public final class Skript extends JavaPlugin implements Listener {
 		// If loading can continue (platform ok), check for potentially thrown error
 		if (classLoadError != null) {
 			exception(classLoadError);
-			setEnabled(false);
 			return;
 		}
 		
@@ -507,7 +460,6 @@ public final class Skript extends JavaPlugin implements Listener {
 			getAddonInstance().loadClasses("ch.njol.skript", "conditions", "effects", "events", "expressions", "entity", "sections");
 		} catch (final Exception e) {
 			exception(e, "Could not load required .class files: " + e.getLocalizedMessage());
-			setEnabled(false);
 			return;
 		}
 
@@ -1047,9 +999,6 @@ public final class Skript extends JavaPlugin implements Listener {
 
 	@SuppressWarnings("ConstantConditions")
 	private boolean isServerRunning() {
-		if (IS_STOPPING_EXISTS)
-			return !Bukkit.getServer().isStopping();
-
 		try {
 			return (boolean) IS_RUNNING.invoke(MC_SERVER);
 		} catch (IllegalAccessException | InvocationTargetException e) {
@@ -1773,6 +1722,14 @@ public final class Skript extends JavaPlugin implements Listener {
 	@Nullable
 	public SkriptUpdater getUpdater() {
 		return updater;
+	}
+
+	public PluginContainer getPluginContainer() {
+		return pluginContainer;
+	}
+
+	public static Skript getInstance() {
+		return instance;
 	}
 	
 }
