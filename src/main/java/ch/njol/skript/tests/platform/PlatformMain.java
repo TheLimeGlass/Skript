@@ -61,9 +61,7 @@ public class PlatformMain {
 		Path envsRoot = Paths.get(args[3]);
 		assert envsRoot != null;
 		boolean devMode = "true".equals(args[4]);
-		boolean genDocs = false;
-		if (args.length > 5)
-			genDocs = "true".equals(args[5]);
+		boolean genDocs = "true".equals(args[5]);
 		
 		// Load environments
 		List<Environment> envs;
