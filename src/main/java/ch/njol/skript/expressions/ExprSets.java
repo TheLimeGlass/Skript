@@ -49,10 +49,12 @@ import ch.njol.util.coll.iterator.IteratorIterable;
 
 @Name("Sets")
 @Description("Collection sets of items or blocks of a specific type or colours, useful for looping.")
-@Examples({"loop items of type ore and log:",
-		"	block contains loop-item",
-		"	message \"Theres at least one %loop-item% in this block\"",
-		"drop all blocks at the player # drops one of every block at the player"})
+@Examples({
+		"loop items of type ore and log:",
+				"\tblock contains loop-item",
+				"\tmessage \"Theres at least one %loop-item% in this block\"",
+		"drop all blocks at the player # drops one of every block at the player"
+})
 @Since("<i>unknown</i> (before 1.4.2), INSERT VERSION (colors)")
 public class ExprSets extends SimpleExpression<Object> {
 
