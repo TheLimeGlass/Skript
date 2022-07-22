@@ -91,6 +91,16 @@ public class PlatformMain {
 			System.out.println("Starting testing on " + env.getName());
 			env.initialize(dataRoot, runnerRoot, false);
 			TestResults results = env.runTests(runnerRoot, testsRoot, devMode, genDocs, "-Xmx5G");
+			if (results == null) {
+				if (devMode) {
+					// Nothing to report, it's the dev mode environment.
+					System.exit(0);
+					return;
+				}
+				System.err.println("The test environment '" + env.getName() + "' failed to produce test results.");
+				System.exit(3);
+				return;
+			}
 			
 			// Collect results
 			docsFailed = results.docsFailed();

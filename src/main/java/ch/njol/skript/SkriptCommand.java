@@ -389,7 +389,7 @@ public class SkriptCommand implements CommandExecutor {
 							// Code should run on server thread
 							Bukkit.getScheduler().scheduleSyncDelayedTask(Skript.getInstance(), () -> {
 								Bukkit.getPluginManager().callEvent(new SkriptTestEvent()); // Run it
-								// ScriptLoader.disableScripts(); // Clean state for next test
+								ScriptLoader.disableScripts(); // Clean state for next test
 								
 								// Get results and show them
 								String[] lines = TestTracker.collectResults().createReport().split("\n");
