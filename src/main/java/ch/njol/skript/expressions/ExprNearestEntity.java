@@ -19,6 +19,13 @@
  */
 package ch.njol.skript.expressions;
 
+import java.util.Arrays;
+
+import org.bukkit.Location;
+import org.bukkit.entity.Entity;
+import org.bukkit.event.Event;
+import org.eclipse.jdt.annotation.Nullable;
+
 import ch.njol.skript.Skript;
 import ch.njol.skript.doc.Description;
 import ch.njol.skript.doc.Examples;
@@ -28,76 +35,51 @@ import ch.njol.skript.entity.EntityData;
 import ch.njol.skript.lang.Expression;
 import ch.njol.skript.lang.ExpressionType;
 import ch.njol.skript.lang.Literal;
-import ch.njol.skript.lang.SkriptParser;
+import ch.njol.skript.lang.SkriptParser.ParseResult;
+import ch.njol.skript.lang.util.SimpleExpression;
 import ch.njol.util.Kleenean;
 import ch.njol.util.StringUtils;
-import org.bukkit.Location;
-import org.bukkit.entity.Entity;
-import ch.njol.skript.lang.util.SimpleExpression;
-import org.bukkit.event.Event;
-import org.eclipse.jdt.annotation.NonNull;
-import org.eclipse.jdt.annotation.Nullable;
-
-import java.util.Arrays;
 
 @Name("Nearest Entity")
 @Description("Gets the entity nearest to a location or another entity.")
-@Examples({"kill the nearest pig and cow relative to player",
+@Examples({
+	"kill the nearest pig and cow relative to player",
 	"teleport player to the nearest cow relative to player",
 	"teleport player to the nearest entity relative to player",
-	"on click:\n\tkill nearest pig"})
+	"",
+	"on click:",
+		"\tkill nearest pig"
+})
 @Since("INSERT VERSION")
 public class ExprNearestEntity extends SimpleExpression<Entity> {
 
 	static {
-		Skript.registerExpression(ExprNearestEntity.class, Entity.class, ExpressionType.SIMPLE,
+		Skript.registerExpression(ExprNearestEntity.class, Entity.class, ExpressionType.COMBINED,
 			"[the] nearest %*entitydatas% [[relative] to %entity/location%]",
 			"[the] %*entitydatas% nearest [to %entity/location%]");
 	}
 
-	@SuppressWarnings("NotNullFieldNotInitialized")
-	@NonNull
 	private EntityData<?>[] entityDatas;
-
-	@SuppressWarnings("NotNullFieldNotInitialized")
-	@NonNull
 	private Expression<?> relativeTo;
 
 	@Override
 	@SuppressWarnings("unchecked")
-	public boolean init(Expression<?>[] exprs, int matchedPattern, Kleenean isDelayed, SkriptParser.ParseResult parseResult) {
+	public boolean init(Expression<?>[] exprs, int matchedPattern, Kleenean isDelayed, ParseResult parseResult) {
 		entityDatas = ((Literal<EntityData<?>>) exprs[0]).getArray();
 		if (entityDatas.length != Arrays.stream(entityDatas).distinct().count()) {
-			Skript.error("Entity list may not contain duplicate entities");
+			Skript.error("Entity list may not contain duplicate entities.");
 			return false;
 		}
 		relativeTo = exprs[1];
 		return true;
 	}
 
-
-	@Nullable
-	private Entity getNearestEntity(EntityData<?> entityData, Location relativePoint, @Nullable Entity excludedEntity) {
-		Entity nearestEntity = null;
-		double nearestDistance = -1;
-		for (Entity entity : relativePoint.getWorld().getEntitiesByClass(entityData.getType())) {
-			if (entity != excludedEntity && entityData.isInstance(entity)) {
-				double distance = entity.getLocation().distance(relativePoint);
-				if (nearestEntity == null || distance < nearestDistance) {
-					nearestDistance = distance;
-					nearestEntity = entity;
-				}
-			}
-		}
-		return nearestEntity;
-	}
-
 	@Override
-	protected Entity[] get(Event e) {
-		Object relativeTo = this.relativeTo.getSingle(e);
-		if (relativeTo == null) {
+	protected Entity[] get(Event event) {
+		Object relativeTo = this.relativeTo.getSingle(event);
+		if (relativeTo == null)
 			return new Entity[0];
-		}
+
 		Entity[] nearestEntities = new Entity[entityDatas.length];
 		for (int i = 0; i < nearestEntities.length; i++) {
 			if (relativeTo instanceof Entity) {
@@ -120,8 +102,24 @@ public class ExprNearestEntity extends SimpleExpression<Entity> {
 	}
 
 	@Override
-	public String toString(@Nullable Event e, boolean debug) {
-		return "nearest " + StringUtils.join(entityDatas) + " relative to " + relativeTo.toString(e, debug);
+	public String toString(@Nullable Event event, boolean debug) {
+		return "nearest " + StringUtils.join(entityDatas) + " relative to " + relativeTo.toString(event, debug);
+	}
+
+	@Nullable
+	private Entity getNearestEntity(EntityData<?> entityData, Location relativePoint, @Nullable Entity excludedEntity) {
+		Entity nearestEntity = null;
+		double nearestDistance = -1;
+		for (Entity entity : relativePoint.getWorld().getEntitiesByClass(entityData.getType())) {
+			if (entity != excludedEntity && entityData.isInstance(entity)) {
+				double distance = entity.getLocation().distance(relativePoint);
+				if (nearestEntity == null || distance < nearestDistance) {
+					nearestDistance = distance;
+					nearestEntity = entity;
+				}
+			}
+		}
+		return nearestEntity;
 	}
 
 }
