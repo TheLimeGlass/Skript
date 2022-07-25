@@ -72,8 +72,8 @@ code. Contributors should also see the dedicated
   ```java
   @Override
   protected String[] get(Event event) {
-    if (value == null)
-  	  return new String[0];
+  	if (value == null)
+  		return new String[0];
   	// rest of code.
   }
   ```
