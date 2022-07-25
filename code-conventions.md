@@ -62,13 +62,21 @@ code. Contributors should also see the dedicated
 * When there are multiple annotations, place them in order:
   - @Override -> @Nullable -> @SuppressWarnings
   - For other annotations, doesn't matter; let your IDE decide
-  
 * When extending one of following classes: SimpleExpression, SimplePropertyExpression, Effect, Condition...
   - Put overridden methods in order
   - SimpleExpression: init -> get (getAll) -> (acceptChange) -> (change) -> isSingle -> getReturnType -> toString
   - SimplePropertyExpression: -> (init) -> convert -> (acceptChange) -> (change) -> getReturnType -> getPropertyName 
   - Effect: init ->  execute  -> toString
   - Condition: init -> check -> toString
+* Return an empty array of the returning type in an expression rather than null.
+  ```java
+  @Override
+  protected String[] get(Event event) {
+  	if (value == null)
+  		return new String[0];
+  	// rest of code.
+  }
+  ```
 
 ## Naming
 * Classes named in CapitalCamelCase
