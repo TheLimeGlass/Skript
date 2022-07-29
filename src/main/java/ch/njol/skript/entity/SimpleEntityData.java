@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.bukkit.entity.AbstractHorse;
+import org.bukkit.entity.Allay;
 import org.bukkit.entity.Animals;
 import org.bukkit.entity.AreaEffectCloud;
 import org.bukkit.entity.ArmorStand;
@@ -107,6 +108,7 @@ import org.bukkit.entity.Squid;
 import org.bukkit.entity.Stray;
 import org.bukkit.entity.Strider;
 import org.bukkit.entity.TNTPrimed;
+import org.bukkit.entity.Tadpole;
 import org.bukkit.entity.ThrownExpBottle;
 import org.bukkit.entity.TippedArrow;
 import org.bukkit.entity.Trident;
@@ -115,6 +117,7 @@ import org.bukkit.entity.Turtle;
 import org.bukkit.entity.Vex;
 import org.bukkit.entity.Vindicator;
 import org.bukkit.entity.WanderingTrader;
+import org.bukkit.entity.Warden;
 import org.bukkit.entity.WaterMob;
 import org.bukkit.entity.Witch;
 import org.bukkit.entity.Wither;
@@ -174,12 +177,12 @@ public class SimpleEntityData extends EntityData<Entity> {
 	
 	private final static List<SimpleEntityDataInfo> types = new ArrayList<>();
 
-	private static void addSimpleEntity(String codeName, Class<? extends Entity> entityclass) {
-		types.add(new SimpleEntityDataInfo(codeName, entityclass));
+	private static void addSimpleEntity(String codeName, Class<? extends Entity> entityClass) {
+		types.add(new SimpleEntityDataInfo(codeName, entityClass));
 	}
 
-	private static void addSuperEntity(String codeName, Class<? extends Entity> entityclass) {
-		types.add(new SimpleEntityDataInfo(codeName, entityclass, true));
+	private static void addSuperEntity(String codeName, Class<? extends Entity> entityClass) {
+		types.add(new SimpleEntityDataInfo(codeName, entityClass, true));
 	}
 	static {
 		// Simple Entities
@@ -252,9 +255,8 @@ public class SimpleEntityData extends EntityData<Entity> {
 		addSimpleEntity("salmon", Salmon.class);
 		addSimpleEntity("tropical fish", TropicalFish.class);
 		addSimpleEntity("trident", Trident.class);
-		
-		if (Skript.classExists("org.bukkit.entity.Illusioner")) // Added in 1.12
-			addSimpleEntity("illusioner", Illusioner.class);
+
+		addSimpleEntity("illusioner", Illusioner.class);
 
 		if (Skript.isRunningMinecraft(1, 14)) {
 			addSimpleEntity("pillager", Pillager.class);
@@ -276,6 +278,12 @@ public class SimpleEntityData extends EntityData<Entity> {
 			addSimpleEntity("glow squid", GlowSquid.class);
 			addSimpleEntity("marker", Marker.class);
 			addSimpleEntity("glow item frame", GlowItemFrame.class);
+		}
+
+		if (Skript.isRunningMinecraft(1, 19)) {
+			addSimpleEntity("allay", Allay.class);
+			addSimpleEntity("tadpole", Tadpole.class);
+			addSimpleEntity("warden", Warden.class);
 		}
 		
 		// Register zombie after Husk and Drowned to make sure both work
