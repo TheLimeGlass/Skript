@@ -102,10 +102,10 @@ public interface Expression<T> extends SyntaxElement, Debuggable {
 	 * @param converter The converter to do the convertering to the type.
 	 * @return The values completed by the converter.
 	 */
-	@SuppressWarnings({"unchecked", "serial"})
-	public default <G> G[] get(Event event, Converter<? super T, ? extends G> converter) {
+	@SuppressWarnings("serial")
+	public default <G> G[] get(Event event, Converter<T, G> converter) {
 		assert converter != null;
-		return Converters.convertUnsafe(getArray(event), (Class<G>) new TypeToken<G>(converter.getClass()){}.getRawType(), converter);
+		return Converters.convertUnsafe(getArray(event), new TypeToken<G>(converter.getClass()){}.getRawType(), converter);
 	}
 	
 	/**
