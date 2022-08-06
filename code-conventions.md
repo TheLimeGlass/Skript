@@ -64,7 +64,7 @@ code. Contributors should also see the dedicated
   - For other annotations, doesn't matter; let your IDE decide
 * When splitting Strings into multiple lines the last part of the string must be (space character included) " " +
   ```java
-  String string= "example string " +
+  String string = "example string " +
         "with more to add";
   ```
   
