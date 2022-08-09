@@ -39,6 +39,7 @@ import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.SoundCategory;
 import org.bukkit.World;
+import org.bukkit.WorldBorder;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.block.Biome;
 import org.bukkit.block.Block;
@@ -1836,5 +1837,33 @@ public class BukkitClasses {
 					}
 				})
 				.serializer(new EnumSerializer<>(Attribute.class)));
+
+		Classes.registerClass(new ClassInfo<>(WorldBorder.class, "worldborder")
+				.user("worldborders?")
+				.name("World Border")
+				.description("Represents a world border of a world or player client.")
+				.since("INSERT VERSION")
+				.parser(new Parser<WorldBorder>() {
+					@Override
+					public boolean canParse(ParseContext context) {
+						return false;
+					}
+
+					@Override
+					public String toString(WorldBorder border, int flags) {
+						World world = border.getWorld();
+						if (world == null) {
+							Location location = border.getCenter();
+							return "world border centered at " + location.getX() + "," + location.getY() + "," + location.getZ();
+						}
+						return "world border of world '" + world.getName()+ "'";
+					}
+
+					@Override
+					public String toVariableNameString(WorldBorder border) {
+						return toString(border, 0);
+					}
+				}));
 	}
+
 }
