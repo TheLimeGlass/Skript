@@ -95,7 +95,7 @@ public interface Expression<T> extends SyntaxElement, Debuggable {
 	public T[] getArray(Event event);
 
 	/**
-	 * Get all the values of this expression and then convert them using the provided getter for easy of access.
+	 * Get all the values of this expression and then converts them using the provided converter.
 	 * <p>
 	 * This method will use {@link Expression#getArray(Event)} to use non null values in the Converter.
 	 * 
