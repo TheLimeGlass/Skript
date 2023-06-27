@@ -24,12 +24,12 @@ import ch.njol.skript.aliases.Aliases;
 import ch.njol.skript.aliases.ItemData;
 import ch.njol.skript.aliases.ItemType;
 import ch.njol.skript.classes.ClassInfo;
-import ch.njol.skript.classes.Comparator;
+import org.skriptlang.skript.lang.comparator.Comparator;
 import ch.njol.skript.entity.BoatChestData;
 import ch.njol.skript.entity.BoatData;
 import ch.njol.skript.entity.EntityData;
 import ch.njol.skript.entity.RabbitData;
-import ch.njol.skript.registrations.Comparators;
+import org.skriptlang.skript.lang.comparator.Comparators;
 import ch.njol.skript.util.BlockUtils;
 import ch.njol.skript.util.Date;
 import ch.njol.skript.util.EnchantmentType;
@@ -52,7 +52,6 @@ import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.command.CommandSender;
 import org.bukkit.enchantments.EnchantmentOffer;
-import org.bukkit.entity.ChestBoat;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.FallingBlock;
 import org.bukkit.entity.Item;
@@ -62,6 +61,7 @@ import org.bukkit.event.entity.EntityDamageEvent.DamageCause;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
+import org.skriptlang.skript.lang.comparator.Relation;
 
 import java.util.Objects;
 
@@ -146,7 +146,7 @@ public class DefaultComparators {
 			}
 
 			@Override
-			public boolean supportsOrdering() {
+			public boolean supportsInversion() {
 				return false;
 			}
 		});
@@ -162,11 +162,11 @@ public class DefaultComparators {
 			}
 
 			@Override
-			public boolean supportsOrdering() {
+			public boolean supportsInversion() {
 				return false;
 			}
 		});
-		
+
 		// ItemStack - ItemType
 		Comparators.registerComparator(ItemStack.class, ItemType.class, new Comparator<ItemStack, ItemType>() {
 			@Override
@@ -175,7 +175,7 @@ public class DefaultComparators {
 			}
 
 			@Override
-			public boolean supportsOrdering() {
+			public boolean supportsInversion() {
 				return false;
 			}
 		});
@@ -188,7 +188,7 @@ public class DefaultComparators {
 			}
 
 			@Override
-			public boolean supportsOrdering() {
+			public boolean supportsInversion() {
 				return false;
 			}
 		});
@@ -201,26 +201,37 @@ public class DefaultComparators {
 			}
 
 			@Override
-			public boolean supportsOrdering() {
+			public boolean supportsInversion() {
 				return false;
 			}
 		});
 		
 		// Block - BlockData
-		if (Skript.classExists("org.bukkit.block.data.BlockData")) {
-			Comparators.registerComparator(Block.class, BlockData.class, new Comparator<Block, BlockData>() {
-				@Override
-				public Relation compare(Block block, BlockData data) {
-					return Relation.get(block.getBlockData().matches(data));
-				}
+		Comparators.registerComparator(Block.class, BlockData.class, new Comparator<Block, BlockData>() {
+			@Override
+			public Relation compare(Block block, BlockData data) {
+				return Relation.get(block.getBlockData().matches(data));
+			}
 
-				@Override
-				public boolean supportsOrdering() {
-					return false;
-				}
-			});
-		}
-		
+			@Override
+			public boolean supportsOrdering() {
+				return false;
+			}
+		});
+
+		// BlockData - BlockData
+		Comparators.registerComparator(BlockData.class, BlockData.class, new Comparator<BlockData, BlockData>() {
+			@Override
+			public Relation compare(BlockData data1, BlockData data2) {
+				return Relation.get(data1.matches(data2));
+			}
+
+			@Override
+			public boolean supportsOrdering() {
+				return false;
+			}
+		});
+
 		// ItemType - ItemType
 		Comparators.registerComparator(ItemType.class, ItemType.class, new Comparator<ItemType, ItemType>() {
 			@Override
@@ -239,7 +250,7 @@ public class DefaultComparators {
 			}
 
 			@Override
-			public boolean supportsOrdering() {
+			public boolean supportsInversion() {
 				return false;
 			}
 		});
@@ -494,10 +505,8 @@ public class DefaultComparators {
 						return Relation.get(t.equals(lava));
 					case MAGIC:
 						return Relation.get(t.isOfType(Material.POTION));
-				}
-				if (Skript.fieldExists(DamageCause.class, "HOT_FLOOR")
-						&& dc.equals(DamageCause.HOT_FLOOR)) {
-					return Relation.get(t.isOfType(Material.MAGMA_BLOCK));
+					case HOT_FLOOR:
+						return Relation.get(t.isOfType(Material.MAGMA_BLOCK));
 				}
 
 				return Relation.NOT_EQUAL;
@@ -573,31 +582,29 @@ public class DefaultComparators {
 		});
 
 		// EnchantmentOffer Comparators
-		if (Skript.isRunningMinecraft(1, 11)) {
-			// EnchantmentOffer - EnchantmentType
-			Comparators.registerComparator(EnchantmentOffer.class, EnchantmentType.class, new Comparator<EnchantmentOffer, EnchantmentType>() {
-				@Override
-				public Relation compare(EnchantmentOffer eo, EnchantmentType et) {
-					return Relation.get(eo.getEnchantment() == et.getType() && eo.getEnchantmentLevel() == et.getLevel());
-				}
+		// EnchantmentOffer - EnchantmentType
+		Comparators.registerComparator(EnchantmentOffer.class, EnchantmentType.class, new Comparator<EnchantmentOffer, EnchantmentType>() {
+			@Override
+			public Relation compare(EnchantmentOffer eo, EnchantmentType et) {
+				return Relation.get(eo.getEnchantment() == et.getType() && eo.getEnchantmentLevel() == et.getLevel());
+			}
 
-				@Override
-				public boolean supportsOrdering() {
-					return false;
-				}
-			});
-			// EnchantmentOffer - Experience
-			Comparators.registerComparator(EnchantmentOffer.class, Experience.class, new Comparator<EnchantmentOffer, Experience>() {
-				@Override
-				public Relation compare(EnchantmentOffer eo, Experience exp) {
-					return Relation.get(eo.getCost() == exp.getXP());
-				}
+			@Override
+			public boolean supportsOrdering() {
+				return false;
+			}
+		});
+		// EnchantmentOffer - Experience
+		Comparators.registerComparator(EnchantmentOffer.class, Experience.class, new Comparator<EnchantmentOffer, Experience>() {
+			@Override
+			public Relation compare(EnchantmentOffer eo, Experience exp) {
+				return Relation.get(eo.getCost() == exp.getXP());
+			}
 
-				@Override public boolean supportsOrdering() {
-					return false;
-				}
-			});
-		}
+			@Override public boolean supportsOrdering() {
+				return false;
+			}
+		});
 
 		Comparators.registerComparator(Inventory.class, InventoryType.class, new Comparator<Inventory, InventoryType>() {
 			@Override
