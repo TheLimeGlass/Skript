@@ -50,4 +50,9 @@ public class Priority implements Comparable<Priority> {
 		return Integer.compare(this.priority, other.priority);
 	}
 
+	@Override
+	public String toString() {
+		return Integer.toString(priority);
+	}
+
 }

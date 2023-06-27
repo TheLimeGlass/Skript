@@ -528,13 +528,13 @@ public class EventValues {
 				builder.append(", ");
 			builder.append(eventValueInfo);
 		}
-		builder.append("\nPresent:");
+		builder.append("\n\nPresent:");
 		for (EventValueInfo<?, ?> eventValueInfo : getEventValuesListForTime(TIME_NOW)) {
 			builder.append(eventValueInfo);
 			if (builder.length() != 0)
 				builder.append(", ");
 		}
-		builder.append("\nFuture:");
+		builder.append("\n\nFuture:");
 		for (EventValueInfo<?, ?> eventValueInfo : getEventValuesListForTime(TIME_FUTURE)) {
 			builder.append(eventValueInfo);
 			if (builder.length() != 0)
