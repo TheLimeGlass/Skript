@@ -68,12 +68,7 @@ public class ExprSets extends SimpleExpression<Object> {
 			return false;
 
 		classInfo = ((Literal<ClassInfo<?>>) exprs[0]).getSingle();
-		supplier = classInfo.getSupplier();
-		if (supplier == null) {
-			Skript.error("You cannot get all values of type '" + classInfo.getName().getSingular() + "'");
-			return false;
-		}
-		return true;
+		return (supplier = classInfo.getSupplier()) != null;
 	}
 
 	@Override
