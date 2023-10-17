@@ -19,6 +19,9 @@
 package ch.njol.skript.effects;
 
 import ch.njol.skript.Skript;
+import ch.njol.skript.bukkitutil.AdventureSoundReceiver;
+import ch.njol.skript.bukkitutil.AdventureSoundReceiver.AdventureEmitterSoundReceiver;
+import ch.njol.skript.bukkitutil.AdventureSoundReceiver.AdventureEntitySoundReceiver;
 import ch.njol.skript.doc.Description;
 import ch.njol.skript.doc.Examples;
 import ch.njol.skript.doc.Name;
@@ -70,7 +73,7 @@ import java.util.regex.Pattern;
 public class EffPlaySound extends Effect {
 
 	private static final boolean ADVENTURE_API = Skript.classExists("net.kyori.adventure.sound.Sound$Builder");
-	private static final Pattern KEY_PATTERN = Pattern.compile("([a-z0-9._-]+:)?[a-z0-9/._-]+");
+	public static final Pattern KEY_PATTERN = Pattern.compile("([a-z0-9._-]+:)?[a-z0-9/._-]+");
 
 	static {
 		String additional = "";
@@ -145,7 +148,7 @@ public class EffPlaySound extends Effect {
 		if (players != null) {
 			if (emitters == null) {
 				for (Player player : players.getArray(event)) {
-					SoundReceiver.play(Player::playSound, Player::playSound, ADVENTURE_API ? Player::playSound : null, ADVENTURE_API ? Player::playSound : null,
+					play(Player::playSound, Player::playSound, ADVENTURE_API ? Player::playSound : null, ADVENTURE_API ? Player::playSound : null,
 							player,	player.getLocation(), sounds.getArray(event), category, volume, pitch, seed);
 				}
 			} else {
@@ -153,11 +156,11 @@ public class EffPlaySound extends Effect {
 					for (Object emitter : emitters.getArray(event)) {
 						if (emitter instanceof Entity) {
 							Entity entity = (Entity) emitter;
-							SoundReceiver.play(Player::playSound, Player::playSound, ADVENTURE_API ? Player::playSound : null, ADVENTURE_API ? Player::playSound : null,
+							play(Player::playSound, Player::playSound, ADVENTURE_API ? Player::playSound : null, ADVENTURE_API ? Player::playSound : null,
 									player,	entity, sounds.getArray(event), category, volume, pitch, seed);
 						} else if (emitter instanceof Location) {
 							Location location = (Location) emitter;
-							SoundReceiver.play(Player::playSound, Player::playSound, ADVENTURE_API ? Player::playSound : null, ADVENTURE_API ? Player::playSound : null,
+							play(Player::playSound, Player::playSound, ADVENTURE_API ? Player::playSound : null, ADVENTURE_API ? Player::playSound : null,
 									player, location, sounds.getArray(event), category, volume, pitch, seed);
 						}
 					}
@@ -167,11 +170,11 @@ public class EffPlaySound extends Effect {
 			for (Object emitter : emitters.getArray(event)) {
 				if (emitter instanceof Entity) {
 					Entity entity = (Entity) emitter;
-					SoundReceiver.play(World::playSound, World::playSound, ADVENTURE_API ? World::playSound : null, ADVENTURE_API ? World::playSound : null,
+					play(World::playSound, World::playSound, ADVENTURE_API ? World::playSound : null, ADVENTURE_API ? World::playSound : null,
 							entity.getWorld(), entity, sounds.getArray(event), category, volume, pitch, seed);
 				} else if (emitter instanceof Location) {
 					Location location = (Location) emitter;
-					SoundReceiver.play(World::playSound, World::playSound, ADVENTURE_API ? World::playSound : null, ADVENTURE_API ? World::playSound : null,
+					play(World::playSound, World::playSound, ADVENTURE_API ? World::playSound : null, ADVENTURE_API ? World::playSound : null,
 							location.getWorld(), location, sounds.getArray(event), category, volume, pitch, seed);
 				}
 			}
@@ -200,6 +203,19 @@ public class EffPlaySound extends Effect {
 		return builder.toString();
 	}
 
+	private <T, E> void play(@NotNull SoundReceiver<T, Entity> entityReceiver,
+			@NotNull SoundReceiver<T, Location> locationReceiver,
+			@Nullable AdventureEmitterSoundReceiver<T> adventureLocationReceiver,
+			@Nullable AdventureEntitySoundReceiver<T> adventureEmitterReceiver,
+			@NotNull T receiver, @NotNull E emitter, @NotNull String[] sounds,
+			@NotNull SoundCategory category, float volume, float pitch, OptionalLong seed) {
+		if (!ADVENTURE_API || adventureLocationReceiver == null || adventureEmitterReceiver == null) {
+			SoundReceiver.play(entityReceiver, locationReceiver, receiver, emitter, sounds, category, volume, pitch, seed);
+			return;
+		}
+		AdventureSoundReceiver.play(adventureLocationReceiver, adventureEmitterReceiver, receiver, emitter, sounds, category, volume, pitch, seed);
+	}
+
 	@FunctionalInterface
 	private interface SoundReceiver<T, E> {
 		void play(
@@ -210,8 +226,6 @@ public class EffPlaySound extends Effect {
 		static <T, E> void play(
 			@NotNull SoundReceiver<T, Entity> entityReceiver,
 			@NotNull SoundReceiver<T, Location> locationReceiver,
-			@NotNull AdventureSoundReceiver<T> adventureReceiver,
-			@NotNull AdventureEntitySoundReceiver<T> adventureEmitterReceiver,
 			@NotNull T receiver, @NotNull E emitter, @NotNull String[] sounds,
 			@NotNull SoundCategory category, float volume, float pitch, OptionalLong seed
 		) {
@@ -229,53 +243,14 @@ public class EffPlaySound extends Effect {
 
 				if (key == null)
 					continue;
-				if (!ADVENTURE_API) {
-					if (emitter instanceof Location) {
-						locationReceiver.play(receiver, (Location) emitter, key.getKey(), category, volume, pitch);
-					} else if (emitter instanceof Entity) {
-						entityReceiver.play(receiver, (Entity) emitter, key.getKey(), category, volume, pitch);
-					}
-					return;
+				if (emitter instanceof Location) {
+					locationReceiver.play(receiver, (Location) emitter, key.getKey(), category, volume, pitch);
+				} else if (emitter instanceof Entity) {
+					entityReceiver.play(receiver, (Entity) emitter, key.getKey(), category, volume, pitch);
 				}
-				assert adventureReceiver != null;
-				net.kyori.adventure.sound.Sound adventureSound = net.kyori.adventure.sound.Sound.sound()
-						.source(category)
-						.volume(volume)
-						.pitch(pitch)
-						.seed(seed)
-						.type(key)
-						.build();
-				AdventureSoundReceiver.play(adventureReceiver, adventureEmitterReceiver, receiver, adventureSound, emitter);
+				return;
 			}
 		}
-	}
-
-	@FunctionalInterface
-	private interface AdventureSoundReceiver<T> {
-		void play(
-			@NotNull T receiver, @NotNull net.kyori.adventure.sound.Sound sound, double x, double y, double z
-		);
-
-		static <T, E> void play(
-			@NotNull AdventureSoundReceiver<T> soundReceiver,
-			@NotNull AdventureEntitySoundReceiver<T> emitterReceiver,
-			@NotNull T receiver, @NotNull net.kyori.adventure.sound.Sound sound, @NotNull E emitter
-		) {
-			if (emitter instanceof Location) {
-				Location location = (Location) emitter;
-				soundReceiver.play(receiver, sound, location.getX(), location.getY(), location.getZ());
-			} else if (emitter instanceof Entity) {
-				Entity entity = (Entity) emitter;
-				emitterReceiver.play(receiver, sound, entity);
-			}
-		}
-	}
-
-	@FunctionalInterface
-	private interface AdventureEntitySoundReceiver<T> {
-		void play(
-			@NotNull T receiver, @NotNull net.kyori.adventure.sound.Sound sound, net.kyori.adventure.sound.Sound.Emitter emitter
-		);
 	}
 
 }
