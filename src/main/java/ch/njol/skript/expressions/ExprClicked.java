@@ -69,7 +69,7 @@ public class ExprClicked extends SimpleExpression<Object> {
 		SLOT(3, Slot.class, "clicked slot", "clicked slot"),
 		INVENTORY(4, Inventory.class, "clicked inventory", "clicked inventory"),
 		TYPE(5, ClickType.class, "click type", "click[ed] type"),
-		ACTION(6, InventoryAction.class, "inventory action", "(click[ed]|inventory) action");
+		ACTION(6, InventoryAction.class, "inventory action", "(clicked|inventory) action");
 
 		private String name, syntax;
 		private Class<?> c;
