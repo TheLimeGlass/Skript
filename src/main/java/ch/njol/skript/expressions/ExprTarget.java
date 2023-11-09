@@ -18,12 +18,23 @@
  */
 package ch.njol.skript.expressions;
 
+import org.bukkit.OfflinePlayer;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.Mob;
+import org.bukkit.entity.Player;
+import org.bukkit.event.Event;
+import org.bukkit.event.entity.EntityTargetEvent;
+import org.bukkit.util.RayTraceResult;
+import org.jetbrains.annotations.Nullable;
+
 import ch.njol.skript.Skript;
 import ch.njol.skript.SkriptConfig;
 import ch.njol.skript.classes.Changer.ChangeMode;
 import ch.njol.skript.doc.Description;
 import ch.njol.skript.doc.Examples;
 import ch.njol.skript.doc.Name;
+import ch.njol.skript.doc.RequiredPlugins;
 import ch.njol.skript.doc.Since;
 import ch.njol.skript.effects.Delay;
 import ch.njol.skript.entity.EntityData;
@@ -34,18 +45,6 @@ import ch.njol.skript.lang.SkriptParser.ParseResult;
 import ch.njol.skript.registrations.EventValues;
 import ch.njol.util.Kleenean;
 import ch.njol.util.coll.CollectionUtils;
-import org.bukkit.OfflinePlayer;
-import org.bukkit.entity.Entity;
-import org.bukkit.entity.LivingEntity;
-import org.bukkit.entity.Mob;
-import org.bukkit.entity.Player;
-import org.bukkit.event.Event;
-import org.bukkit.event.entity.EntityTargetEvent;
-import org.bukkit.util.RayTraceResult;
-import org.bukkit.util.Vector;
-import org.eclipse.jdt.annotation.Nullable;
-
-import java.util.List;
 
 @Name("Target")
 @Description({
@@ -61,23 +60,28 @@ import java.util.List;
 	"delete targeted entity of player # for players it will delete the target",
 	"delete target of last spawned zombie # for entities it will make them target-less"
 })
-@Since("1.4.2, 2.7 (Reset)")
+@RequiredPlugins("Paper 1.19+ (ignoring blocks)")
+@Since("1.4.2, 2.7 (Reset), INSERT VERSION (ignore blocks)")
 public class ExprTarget extends PropertyExpression<LivingEntity, Entity> {
+
+	private static final boolean PAPER_RAYTRACE = Skript.methodExists(LivingEntity.class, "rayTraceEntities", int.class, boolean.class);
 
 	static {
 		Skript.registerExpression(ExprTarget.class, Entity.class, ExpressionType.PROPERTY,
-				"[the] target[[ed] %-*entitydata%] [of %livingentities%]",
-				"%livingentities%'[s] target[[ed] %-*entitydata%]");
+				"[the] target[[ed] %-*entitydata%] [of %livingentities%]" + (PAPER_RAYTRACE ? " [blocks:ignoring blocks]" : ""),
+				"%livingentities%'[s] target[[ed] %-*entitydata%]" + (PAPER_RAYTRACE ? " [blocks:ignoring blocks]" : ""));
 	}
 
 	@Nullable
 	private EntityData<?> type;
+	private static boolean ignoreBlocks;
 
 	@Override
 	@SuppressWarnings("unchecked")
 	public boolean init(Expression<?>[] exprs, int matchedPattern, Kleenean isDelayed, ParseResult parser) {
 		type = exprs[matchedPattern] == null ? null : (EntityData<?>) exprs[matchedPattern].getSingle(null);
 		setExpr((Expression<? extends LivingEntity>) exprs[1 - matchedPattern]);
+		ignoreBlocks = parser.hasTag("blocks");
 		return true;
 	}
 
@@ -153,17 +157,21 @@ public class ExprTarget extends PropertyExpression<LivingEntity, Entity> {
 	/**
 	 * Gets an entity's target.
 	 *
-	 * @param entity The entity to get the target of
+	 * @param entity The entity to get the target of.
 	 * @param type The exact EntityData to find. Can be null for any entity.
-	 * @return The entity's target
+	 * @return The entity's target.
 	 */
 	@Nullable
 	@SuppressWarnings("unchecked")
 	public static <T extends Entity> T getTarget(LivingEntity entity, @Nullable EntityData<T> type) {
 		if (entity instanceof Mob)
 			return ((Mob) entity).getTarget() == null || type != null && !type.isInstance(((Mob) entity).getTarget()) ? null : (T) ((Mob) entity).getTarget();
-
-		RayTraceResult result = entity.rayTraceEntities(SkriptConfig.maxTargetBlockDistance.value());
+		RayTraceResult result;
+		if (!PAPER_RAYTRACE) {
+			result = entity.getWorld().rayTraceEntities(entity.getLocation(), entity.getEyeLocation().toVector(), SkriptConfig.maxTargetBlockDistance.value(), 0.0D);
+		} else {
+			result = entity.rayTraceEntities(SkriptConfig.maxTargetBlockDistance.value(), ignoreBlocks);
+		}
 		if (result == null)
 			return null;
 		Entity hitEntity = result.getHitEntity();
