@@ -23,6 +23,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 
+import org.bukkit.block.BlockState;
 import org.bukkit.entity.Entity;
 import org.bukkit.event.Event;
 import org.bukkit.structure.Structure;
@@ -115,8 +116,10 @@ public class ExprStructureInfo extends PropertyExpression<Structure, Object> {
 			return new ArrayIterator<Object>(get(event, getExpr().getArray(event)));
 		List<Object> blocks = new ArrayList<>();
 		for (Structure structure : getExpr().getArray(event)) {
-			if (structure.getPaletteCount() > 0)
-				blocks.addAll(structure.getPalettes().get(0).getBlocks());
+			if (structure.getPaletteCount() > 0) {
+				for (BlockState state : structure.getPalettes().get(0).getBlocks())
+					blocks.add(new BlockStateBlock(state, true));
+			}
 		}
 		return blocks.iterator();
 	}
