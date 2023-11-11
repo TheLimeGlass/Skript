@@ -35,11 +35,12 @@ import ch.njol.skript.doc.Examples;
 import ch.njol.skript.doc.Name;
 import ch.njol.skript.doc.RequiredPlugins;
 import ch.njol.skript.doc.Since;
-import ch.njol.skript.expressions.base.SimplePropertyExpression;
+import ch.njol.skript.expressions.base.PropertyExpression;
 import ch.njol.skript.lang.Expression;
 import ch.njol.skript.lang.SkriptParser.ParseResult;
 import ch.njol.skript.util.BlockStateBlock;
 import ch.njol.util.Kleenean;
+import ch.njol.util.coll.iterator.ArrayIterator;
 
 @Name("Structure Info")
 @Description("An expression to obtain information about a structure's entities, size, and blocks.")
@@ -53,11 +54,11 @@ import ch.njol.util.Kleenean;
 })
 @RequiredPlugins("Minecraft 1.17.1+")
 @Since("INSERT VERSION")
-public class ExprStructureInfo extends SimplePropertyExpression<Structure, Object> {
+public class ExprStructureInfo extends PropertyExpression<Structure, Object> {
 
 	static {
 		if (Skript.classExists("org.bukkit.structure.Structure"))
-			register(ExprStructureInfo.class, Object.class, "(:blocks|:entities|size:(size|[lowest] [block] vector))", "structures");
+			register(ExprStructureInfo.class, Object.class, "[structure] (:blocks|:entities|size:(size|[lowest] [block] vector))", "structures");
 	}
 
 	private enum Property {
@@ -89,18 +90,20 @@ public class ExprStructureInfo extends SimplePropertyExpression<Structure, Objec
 	}
 
 	@Override
-	@Nullable
-	public Object convert(Structure structure) {
+	protected Object[] get(Event event, Structure[] source) {
 		switch (property) {
 			case BLOCKS:
-				if (structure.getPaletteCount() > 0)
-					return structure.getPalettes().get(0).getBlocks().stream()
-							.map(state -> new BlockStateBlock(state, true))
-							.toArray(BlockStateBlock[]::new);
+				return get(source, structure -> {
+					if (structure.getPaletteCount() > 0)
+						return structure.getPalettes().get(0).getBlocks().stream()
+								.map(state -> new BlockStateBlock(state, true))
+								.toArray(BlockStateBlock[]::new);
+					return null;
+				});
 			case ENTITIES:
-				return structure.getEntities().toArray(Entity[]::new);
+				return get(source, structure -> structure.getEntities().toArray(Entity[]::new));
 			case SIZE:
-				return structure.getSize();
+				return get(source, Structure::getSize);
 		}
 		return null;
 	}
@@ -109,7 +112,7 @@ public class ExprStructureInfo extends SimplePropertyExpression<Structure, Objec
 	@Nullable
 	public Iterator<Object> iterator(Event event) {
 		if (property != Property.BLOCKS)
-			return getExpr().stream(event).map(this::convert).iterator();
+			return new ArrayIterator<Object>(get(event, getExpr().getArray(event)));
 		List<Object> blocks = new ArrayList<>();
 		for (Structure structure : getExpr().getArray(event)) {
 			if (structure.getPaletteCount() > 0)
@@ -119,13 +122,18 @@ public class ExprStructureInfo extends SimplePropertyExpression<Structure, Objec
 	}
 
 	@Override
+	public boolean isSingle() {
+		return property == Property.SIZE && getExpr().isSingle();
+	}
+
+	@Override
 	public Class<? extends Object> getReturnType() {
 		return property.getReturnType();
 	}
 
 	@Override
-	protected String getPropertyName() {
-		return property.name().toLowerCase(Locale.ENGLISH);
+	public String toString(@Nullable Event event, boolean debug) {
+		return property.name().toLowerCase(Locale.ENGLISH) + " of " + getExpr().toString(event, debug);
 	}
 
 }
