@@ -1977,6 +1977,19 @@ item display transforms:
 	thirdperson_lefthand: third person left handed, third person left hand, left handed in third person
 	thirdperson_righthand: third person right handed, third person right hand, right handed in third person
 
+# -- Structure Rotations --
+structure rotations:
+	clockwise_180: clockwise 180
+	clockwise_90: clockwise 90
+	counterclockwise_90: counter clockwise 90
+	none: none, default
+
+# -- Structure Mirrors --
+mirrors:
+	front_back: front back, front to back
+	left_right: left right, left to right
+	none: none, default
+
 # -- Boolean --
 boolean:
 	true:
@@ -2039,6 +2052,9 @@ types:
 	cattype: cat type¦s @a
 	gamerule: gamerule¦s @a
 	attributetype: attribute type¦s @a
+	structure: structure¦s @a
+	structurerotation: structure rotation¦s @a
+	mirror: mirror¦s @a
 	enchantmentoffer: enchantment offer¦s @an
 	environment: environment¦s @an
 	moonphase: moonphase¦s @a
