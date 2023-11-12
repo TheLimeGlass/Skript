@@ -72,6 +72,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.metadata.Metadatable;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
+import org.bukkit.util.BoundingBox;
 import org.bukkit.util.CachedServerIcon;
 import org.bukkit.util.Vector;
 import org.eclipse.jdt.annotation.Nullable;
@@ -1519,6 +1520,22 @@ public class BukkitClasses {
 					.description("The inventory close reason in an <a href='/events.html#inventory_close'>inventory close event</a>.")
 					.requiredPlugins("Paper")
 					.since("INSERT VERSION"));
+
+		Classes.registerClass(new ClassInfo<>(BoundingBox.class, "boundingbox")
+				.user("bounding ?box(es)?")
+				.name("Bounding Box")
+				.description(
+						"A mutable axis aligned bounding box (AABB).",
+						"This basically represents a rectangular box (specified by minimum and maximum corners) that can for example be used to describe the position " +
+						"and extents of an object (such as an entity, block, or rectangular region) in 3D space. " +
+						"Its edges and faces are parallel to the axes of the cartesian coordinate system.",
+						"The bounding box may be degenerate (one or more sides having the length 0).",
+						"Because bounding boxes are mutable, storing them long term may be dangerous if they get modified later. " +
+						"If you want to keep around a bounding box, it may be wise to call clone() in order to get a copy."
+				)
+				.since("INSERT VERSION")
+				.defaultExpression(new EventValueExpression<>(BoundingBox.class)));
+
 	}
 
 }

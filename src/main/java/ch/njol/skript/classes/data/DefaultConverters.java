@@ -49,6 +49,7 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
+import org.bukkit.util.BoundingBox;
 import org.bukkit.util.Vector;
 import org.skriptlang.skript.lang.converter.Converter;
 import org.skriptlang.skript.lang.converter.Converters;
@@ -180,6 +181,9 @@ public class DefaultConverters {
 
 		// Location - Chunk
 		Converters.registerConverter(Location.class, Chunk.class, Location::getChunk);
+
+		// Entity - BoundingBox
+		Converters.registerConverter(Entity.class, BoundingBox.class, Entity::getBoundingBox);
 
 //		// Entity - String (UUID) // Very slow, thus disabled for now
 //		Converters.registerConverter(String.class, Entity.class, new Converter<String, Entity>() {

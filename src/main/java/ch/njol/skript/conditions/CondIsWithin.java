@@ -18,6 +18,15 @@
  */
 package ch.njol.skript.conditions;
 
+import org.bukkit.Chunk;
+import org.bukkit.Location;
+import org.bukkit.World;
+import org.bukkit.block.Block;
+import org.bukkit.event.Event;
+import org.bukkit.util.BoundingBox;
+import org.bukkit.util.Vector;
+import org.jetbrains.annotations.Nullable;
+
 import ch.njol.skript.Skript;
 import ch.njol.skript.doc.Description;
 import ch.njol.skript.doc.Examples;
@@ -29,15 +38,6 @@ import ch.njol.skript.lang.Expression;
 import ch.njol.skript.lang.SkriptParser.ParseResult;
 import ch.njol.skript.util.AABB;
 import ch.njol.util.Kleenean;
-import org.bukkit.Chunk;
-import org.bukkit.Location;
-import org.bukkit.World;
-import org.bukkit.block.Block;
-import org.bukkit.entity.Entity;
-import org.bukkit.event.Event;
-import org.bukkit.util.BoundingBox;
-import org.bukkit.util.Vector;
-import org.eclipse.jdt.annotation.Nullable;
 
 @Name("Is Within")
 @Description({
@@ -62,7 +62,7 @@ import org.eclipse.jdt.annotation.Nullable;
 public class CondIsWithin extends Condition {
 
 	static {
-		String validTypes = "entity/chunk/world";
+		String validTypes = "chunk/world/boundingboxes";
 		if (Skript.methodExists(Block.class, "getCollisionShape"))
 			validTypes += "/block";
 
@@ -113,9 +113,9 @@ public class CondIsWithin extends Condition {
 		if (area == null)
 			return false;
 
-		// Entities
-		if (area instanceof Entity) {
-			BoundingBox box = ((Entity) area).getBoundingBox();
+		// Bounding boxes
+		if (area instanceof BoundingBox) {
+			BoundingBox box = (BoundingBox) area;
 			return locsToCheck.check(event, (loc) -> box.contains(loc.toVector()), isNegated());
 		}
 
