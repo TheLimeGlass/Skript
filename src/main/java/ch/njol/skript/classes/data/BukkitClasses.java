@@ -80,6 +80,7 @@ import org.bukkit.metadata.Metadatable;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.structure.Structure;
+import org.bukkit.util.BoundingBox;
 import org.bukkit.util.CachedServerIcon;
 import org.bukkit.util.Vector;
 import org.eclipse.jdt.annotation.Nullable;
@@ -159,7 +160,7 @@ public class BukkitClasses {
 					
 					@Override
 					public boolean canParse(final ParseContext context) {
-						return context == ParseContext.COMMAND;
+						return context == ParseContext.COMMAND || context == ParseContext.PARSE;
 					}
 					
 					@Override
@@ -542,7 +543,7 @@ public class BukkitClasses {
 					@Nullable
 					public World parse(final String s, final ParseContext context) {
 						// REMIND allow shortcuts '[over]world', 'nether' and '[the_]end' (server.properties: 'level-name=world') // inconsistent with 'world is "..."'
-						if (context == ParseContext.COMMAND || context == ParseContext.CONFIG)
+						if (context == ParseContext.COMMAND || context == ParseContext.PARSE || context == ParseContext.CONFIG)
 							return Bukkit.getWorld(s);
 						final Matcher m = parsePattern.matcher(s);
 						if (m.matches())
@@ -679,7 +680,7 @@ public class BukkitClasses {
 					@Override
 					@Nullable
 					public Player parse(String s, ParseContext context) {
-						if (context == ParseContext.COMMAND) {
+						if (context == ParseContext.COMMAND || context == ParseContext.PARSE) {
 							if (s.isEmpty())
 								return null;
 							if (UUID_PATTERN.matcher(s).matches())
@@ -699,7 +700,7 @@ public class BukkitClasses {
 					
 					@Override
 					public boolean canParse(final ParseContext context) {
-						return context == ParseContext.COMMAND;
+						return context == ParseContext.COMMAND || context == ParseContext.PARSE;
 					}
 					
 					@Override
@@ -739,7 +740,7 @@ public class BukkitClasses {
 					@Nullable
 					@SuppressWarnings("deprecation")
 					public OfflinePlayer parse(final String s, final ParseContext context) {
-						if (context == ParseContext.COMMAND) {
+						if (context == ParseContext.COMMAND || context == ParseContext.PARSE) {
 							if (UUID_PATTERN.matcher(s).matches())
 								return Bukkit.getOfflinePlayer(UUID.fromString(s));
 							else if (!SkriptConfig.playerNameRegexPattern.value().matcher(s).matches())
@@ -752,7 +753,7 @@ public class BukkitClasses {
 					
 					@Override
 					public boolean canParse(ParseContext context) {
-						return context == ParseContext.COMMAND;
+						return context == ParseContext.COMMAND || context == ParseContext.PARSE;
 					}
 					
 					@Override
@@ -1602,6 +1603,21 @@ public class BukkitClasses {
 					.requiredPlugins("Minecraft 1.17.1")
 					.since("INSERT VERSION"));
 		}
+
+		Classes.registerClass(new ClassInfo<>(BoundingBox.class, "boundingbox")
+				.user("bounding ?box(es)?")
+				.name("Bounding Box")
+				.description(
+						"A mutable axis aligned bounding box (AABB).",
+						"This basically represents a rectangular box (specified by minimum and maximum corners) that can for example be used to describe the position " +
+						"and extents of an object (such as an entity, block, or rectangular region) in 3D space. " +
+						"Its edges and faces are parallel to the axes of the cartesian coordinate system.",
+						"The bounding box may be degenerate (one or more sides having the length 0).",
+						"Because bounding boxes are mutable, storing them long term may be dangerous if they get modified later. " +
+						"If you want to keep around a bounding box, it may be wise to call clone() in order to get a copy."
+				)
+				.since("INSERT VERSION")
+				.defaultExpression(new EventValueExpression<>(BoundingBox.class)));
 
 	}
 

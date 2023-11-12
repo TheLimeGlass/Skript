@@ -2068,6 +2068,7 @@ types:
 	textalignment: text alignment¦s @a
 	itemdisplaytransform: item display transform¦s @an
 	quaternion: quaternion¦s @a
+	boundingbox: bounding box¦es @a
 
 	# Skript
 	weathertype: weather type¦s @a
