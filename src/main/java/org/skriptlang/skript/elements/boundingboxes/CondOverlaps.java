@@ -16,7 +16,7 @@
  *
  * Copyright Peter Güttinger, SkriptLang team and contributors
  */
-package org.skriptlang.skript.elements.conditions;
+package org.skriptlang.skript.elements.boundingboxes;
 
 import org.bukkit.event.Event;
 import org.bukkit.util.BoundingBox;

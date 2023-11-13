@@ -83,6 +83,7 @@ import ch.njol.skript.aliases.Aliases;
 import ch.njol.skript.aliases.ItemType;
 import ch.njol.skript.bukkitutil.EnchantmentUtils;
 import ch.njol.skript.bukkitutil.ItemUtils;
+import ch.njol.skript.classes.Changer;
 import ch.njol.skript.classes.ClassInfo;
 import ch.njol.skript.classes.ConfigurationSerializer;
 import ch.njol.skript.classes.EnumClassInfo;
@@ -100,12 +101,10 @@ import ch.njol.skript.util.EnchantmentType;
 import ch.njol.skript.util.PotionEffectUtils;
 import ch.njol.skript.util.StringMode;
 import ch.njol.util.StringUtils;
+import ch.njol.util.coll.CollectionUtils;
 import ch.njol.yggdrasil.Fields;
 import io.papermc.paper.world.MoonPhase;
 
-/**
- * @author Peter Güttinger
- */
 public class BukkitClasses {
 
 	public BukkitClasses() {}
@@ -1534,6 +1533,24 @@ public class BukkitClasses {
 						"If you want to keep around a bounding box, it may be wise to call clone() in order to get a copy."
 				)
 				.since("INSERT VERSION")
+				.changer(new Changer<BoundingBox>() {
+
+					@Override
+					@Nullable
+					public Class<?>[] acceptChange(ChangeMode mode) {
+						return mode == ChangeMode.SET ? CollectionUtils.array(BoundingBox.class) : null;
+					}
+
+					@Override
+					public void change(BoundingBox[] what, @Nullable Object[] delta, ChangeMode mode) {
+						if (delta == null)
+							return;
+						BoundingBox object = (BoundingBox) delta[0];
+						for (BoundingBox box : what)
+							box.resize(object.getMinX(), object.getMinY(), object.getMinZ(), object.getMaxX(), object.getMaxY(), object.getMaxZ());
+					}
+					
+				})
 				.defaultExpression(new EventValueExpression<>(BoundingBox.class)));
 
 	}
