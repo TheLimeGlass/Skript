@@ -16,7 +16,7 @@
  *
  * Copyright Peter Güttinger, SkriptLang team and contributors
  */
-package org.skriptlang.skript.elements.expressions;
+package org.skriptlang.skript.elements.boundingboxes;
 
 import org.bukkit.block.Block;
 import org.bukkit.entity.Entity;

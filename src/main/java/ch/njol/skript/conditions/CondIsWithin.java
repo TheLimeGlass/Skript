@@ -37,6 +37,7 @@ import ch.njol.skript.lang.Condition;
 import ch.njol.skript.lang.Expression;
 import ch.njol.skript.lang.SkriptParser.ParseResult;
 import ch.njol.skript.util.AABB;
+import ch.njol.skript.util.LiteralUtils;
 import ch.njol.util.Kleenean;
 
 @Name("Is Within")
@@ -57,12 +58,12 @@ import ch.njol.util.Kleenean;
 		"\tcancel event",
 		"\tsend \"Back up!\" to attacker and victim",
 })
-@Since("2.7")
 @RequiredPlugins("MC 1.17+ (within block)")
+@Since("2.7")
 public class CondIsWithin extends Condition {
 
 	static {
-		String validTypes = "chunk/world/boundingboxes";
+		String validTypes = "chunk/world/boundingbox";
 		if (Skript.methodExists(Block.class, "getCollisionShape"))
 			validTypes += "/block";
 
@@ -76,6 +77,7 @@ public class CondIsWithin extends Condition {
 
 	private Expression<Location> locsToCheck, loc1, loc2;
 	private Expression<?> area;
+
 	private boolean withinLocations;
 
 	@Override
@@ -89,9 +91,12 @@ public class CondIsWithin extends Condition {
 			loc1 = (Expression<Location>) exprs[1];
 			loc2 = (Expression<Location>) exprs[2];
 		} else {
-			// within an entity/block/chunk/world
-			withinLocations = false;
-			area = exprs[1];
+			area = LiteralUtils.defendExpression(exprs[1]);
+			if (!area.isSingle()) {
+				Skript.error("Cannot have multiple objects in the objects for the is within check.");
+				return false;
+			}
+			return LiteralUtils.canInitSafely(area);
 		}
 		return true;
 	}
@@ -116,7 +121,7 @@ public class CondIsWithin extends Condition {
 		// Bounding boxes
 		if (area instanceof BoundingBox) {
 			BoundingBox box = (BoundingBox) area;
-			return locsToCheck.check(event, (loc) -> box.contains(loc.toVector()), isNegated());
+			return locsToCheck.check(event, loc -> box.contains(loc.toVector()), isNegated());
 		}
 
 		// Blocks
@@ -125,7 +130,7 @@ public class CondIsWithin extends Condition {
 				// getCollisionShape().getBoundingBoxes() returns a list of bounding boxes relative to the block's position,
 				// so we need to subtract the block position from each location
 				Vector blockVector = ((Block) area).getLocation().toVector();
-				if (!locsToCheck.check(event, (loc) -> box.contains(loc.toVector().subtract(blockVector)), isNegated())) {
+				if (!locsToCheck.check(event, loc -> box.contains(loc.toVector().subtract(blockVector)), isNegated())) {
 					return false;
 				}
 			}
@@ -135,12 +140,12 @@ public class CondIsWithin extends Condition {
 
 		// Chunks
 		if (area instanceof Chunk) {
-			return locsToCheck.check(event, (loc) -> loc.getChunk().equals(area), isNegated());
+			return locsToCheck.check(event, loc -> loc.getChunk().equals(area), isNegated());
 		}
 
 		// Worlds
 		if (area instanceof World) {
-			return locsToCheck.check(event, (loc) -> loc.getWorld().equals(area), isNegated());
+			return locsToCheck.check(event, loc -> loc.getWorld().equals(area), isNegated());
 		}
 
 		// fall-back

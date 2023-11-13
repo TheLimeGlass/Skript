@@ -146,6 +146,7 @@ public class ExprXYZComponent extends SimplePropertyExpression<Object, Number> {
 							vector.setZ(value);
 						}
 						getExpr().change(event, new Vector[] {vector}, ChangeMode.SET);
+						break;
 					default:
 						assert false;
 				}

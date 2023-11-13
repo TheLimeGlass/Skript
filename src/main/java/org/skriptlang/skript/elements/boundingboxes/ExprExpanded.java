@@ -16,11 +16,11 @@
  *
  * Copyright Peter Güttinger, SkriptLang team and contributors
  */
-package org.skriptlang.skript.elements.expressions;
+package org.skriptlang.skript.elements.boundingboxes;
 
-import org.bukkit.Location;
 import org.bukkit.event.Event;
 import org.bukkit.util.BoundingBox;
+import org.bukkit.util.Vector;
 import org.eclipse.jdt.annotation.Nullable;
 
 import ch.njol.skript.Skript;
@@ -28,49 +28,58 @@ import ch.njol.skript.doc.Description;
 import ch.njol.skript.doc.Examples;
 import ch.njol.skript.doc.Name;
 import ch.njol.skript.doc.Since;
+import ch.njol.skript.expressions.base.PropertyExpression;
 import ch.njol.skript.lang.Expression;
 import ch.njol.skript.lang.ExpressionType;
 import ch.njol.skript.lang.SkriptParser.ParseResult;
-import ch.njol.skript.lang.util.SimpleExpression;
+import ch.njol.skript.util.Direction;
 import ch.njol.util.Kleenean;
-import ch.njol.util.coll.CollectionUtils;
 
-@Name("New Bounding Box")
-@Description("Creates a new bounding box between two locations.")
-@Examples("set {_box} to a new bounding box between location(0, 10, 0) and location(10, 20, 10)")
+@Name("Bounding Box Expanded")
+@Description("The bounding box of entities/blocks expanded in a direction.")
+@Examples({
+	"on player move:",
+		"\tplayer is within bounding boxes of {displays::*} expanded by vector(1, 1, 1)",
+		"\tmessage \"You are within the block displays.\"",
+	"",
+	"on arm swing:",
+		"\texpand metadata \"visual-indicator\" of player 1 metres in the direction of player",
+	"",
+	"set {_expanded} to {_boundingBox} expanded by vector(1, 1, 1)"
+})
 @Since("INSERT VERSION")
-public class ExprNewBoundingBox extends SimpleExpression<BoundingBox> {
+public class ExprExpanded extends PropertyExpression<BoundingBox, BoundingBox> {
 
 	static {
-		Skript.registerExpression(ExprNewBoundingBox.class, BoundingBox.class, ExpressionType.COMBINED, "[a] [new] bounding box within %location% (and|to) %location%");
+		Skript.registerExpression(ExprExpanded.class, BoundingBox.class, ExpressionType.COMBINED, "[bounding box[es]] %boundingboxes% expanded [by] %direction/vector/number%");
 	}
 
-	private Expression<Location> location1;
-	private Expression<Location> location2;
+	private Expression<?> direction;
 
 	@Override
 	@SuppressWarnings("unchecked")
 	public boolean init(Expression<?>[] exprs, int matchedPattern, Kleenean isDelayed, ParseResult parseResult) {
-		location1 = (Expression<Location>) exprs[0];
-		location2 = (Expression<Location>) exprs[1];
+		setExpr((Expression<? extends BoundingBox>) exprs[0]);
+		direction = exprs[1];
 		return true;
 	}
 
 	@Override
-	@Nullable
-	protected BoundingBox[] get(Event event) {
-		Location location1 = this.location1.getSingle(event);
-		if (location1 == null)
+	protected BoundingBox[] get(Event event, BoundingBox[] source) {
+		Object object = direction.getSingle(event);
+		if (object == null)
 			return new BoundingBox[0];
-		Location location2 = this.location2.getSingle(event);
-		if (location2 == null)
-			return new BoundingBox[0];
-		return CollectionUtils.array(BoundingBox.of(location1, location2));
-	}
 
-	@Override
-	public boolean isSingle() {
-		return false;
+		return this.get(source, box -> {
+			if (object instanceof Direction) {
+				return box.expand(((Direction) object).getDirection());
+			} else if (object instanceof Number) {
+				return box.expand(((Number) object).doubleValue());
+			} else if (object instanceof Vector) {
+				return box.expand((Vector) object);
+			}
+			return null;
+		});
 	}
 
 	@Override
@@ -80,7 +89,7 @@ public class ExprNewBoundingBox extends SimpleExpression<BoundingBox> {
 
 	@Override
 	public String toString(@Nullable Event event, boolean debug) {
-		return "bounding box within " + location1.toString(event, debug) + " to " + location2.toString(event, debug);
+		return getExpr().toString(event, debug) + " expanded " + direction.toString(event, debug);
 	}
 
 }
