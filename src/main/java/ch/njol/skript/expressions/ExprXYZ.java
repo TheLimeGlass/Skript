@@ -19,9 +19,11 @@
 package ch.njol.skript.expressions;
 
 import org.bukkit.event.Event;
+import org.bukkit.util.BoundingBox;
 import org.bukkit.util.Vector;
 import org.eclipse.jdt.annotation.Nullable;
 
+import ch.njol.skript.Skript;
 import ch.njol.skript.classes.Changer;
 import ch.njol.skript.classes.Changer.ChangeMode;
 import ch.njol.skript.doc.Description;
@@ -34,47 +36,58 @@ import ch.njol.skript.lang.SkriptParser.ParseResult;
 import ch.njol.util.Kleenean;
 import ch.njol.util.coll.CollectionUtils;
 
-/**
- * @author bi0qaw
- */
-@Name("Vectors - XYZ Component")
-@Description("Gets or changes the x, y or z component of a vector.")
-@Examples({"set {_v} to vector 1, 2, 3",
-		"send \"%x of {_v}%, %y of {_v}%, %z of {_v}%\"",
-		"add 1 to x of {_v}",
-		"add 2 to y of {_v}",
-		"add 3 to z of {_v}",
-		"send \"%x of {_v}%, %y of {_v}%, %z of {_v}%\"",
-		"set x component of {_v} to 1",
-		"set y component of {_v} to 2",
-		"set z component of {_v} to 3",
-		"send \"%x component of {_v}%, %y component of {_v}%, %z component of {_v}%\"",})
-@Since("2.2-dev28")
-public class ExprVectorXYZ extends SimplePropertyExpression<Vector, Number> {
-	
+@Name("XYZ Component")
+@Description("Gets or changes the x, y or z component of a vector or bounding boxes.")
+@Examples({
+	"set {_v} to vector 1, 2, 3",
+	"send \"%x of {_v}%, %y of {_v}%, %z of {_v}%\"",
+	"add 1 to x of {_v}",
+	"add 2 to y of {_v}",
+	"add 3 to z of {_v}",
+	"send \"%x of {_v}%, %y of {_v}%, %z of {_v}%\"",
+	"set x component of {_v} to 1",
+	"set y component of {_v} to 2",
+	"set z component of {_v} to 3",
+	"send \"%x component of {_v}%, %y component of {_v}%, %z component of {_v}%\""
+})
+@Since("2.2-dev28, INSERT VERSION (bounding boxes)")
+public class ExprXYZ extends SimplePropertyExpression<Object, Number> {
+
 	static {
-		register(ExprVectorXYZ.class, Number.class, "[vector] (0¦x|1¦y|2¦z) [component[s]]", "vectors");
+		register(ExprXYZ.class, Number.class, "([vector]|bounding box[es] (max[imum]|min:min[minimum]) [point]) (0¦x|1¦y|2¦z) [component[s]]", "vectors/boundingboxes");
 	}
-	
+
 	private final static Character[] axes = new Character[] {'x', 'y', 'z'};
-	
+	private boolean minimum;
 	private int axis;
-	
+
 	@Override
 	public boolean init(Expression<?>[] exprs, int matchedPattern, Kleenean isDelayed, ParseResult parseResult) {
-		super.init(exprs, matchedPattern, isDelayed, parseResult);
 		axis = parseResult.mark;
-		return true;
+		minimum = parseResult.hasTag("minimum");
+		return super.init(exprs, matchedPattern, isDelayed, parseResult);
 	}
-	
+
 	@Override
-	public Number convert(Vector v) {
-		return axis == 0 ? v.getX() : (axis == 1 ? v.getY() : v.getZ());
+	public Number convert(Object object) {
+		if (object instanceof Vector) {
+			Vector vector = (Vector) object;
+			return axis == 0 ? vector.getX() : (axis == 1 ? vector.getY() : vector.getZ());
+		} else {
+			BoundingBox boundingBox = (BoundingBox) object;
+			if (minimum)
+				return axis == 0 ? boundingBox.getMinX() : (axis == 1 ? boundingBox.getMinY() : boundingBox.getMinZ());
+			return axis == 0 ? boundingBox.getMaxX() : (axis == 1 ? boundingBox.getMaxY() : boundingBox.getMaxZ());
+		}
 	}
-	
+
 	@Override
 	@SuppressWarnings("null")
 	public Class<?>[] acceptChange(ChangeMode mode) {
+		if (getReturnType().isAssignableFrom(BoundingBox.class)) {
+			Skript.error("A bounding box x/y/z cannot be set. Use the expand effect.");
+			return null;
+		}
 		if ((mode == ChangeMode.ADD || mode == ChangeMode.REMOVE || mode == ChangeMode.SET)
 				&& getExpr().isSingle() && Changer.ChangerUtils.acceptsChange(getExpr(), ChangeMode.SET, Vector.class))
 			return CollectionUtils.array(Number.class);
@@ -84,9 +97,10 @@ public class ExprVectorXYZ extends SimplePropertyExpression<Vector, Number> {
 	@Override
 	public void change(Event e, @Nullable Object[] delta, ChangeMode mode) {
 		assert delta != null;
-		final Vector v = getExpr().getSingle(e);
-		if (v == null)
+		Object object = getExpr().getSingle(e);
+		if (object == null)
 			return;
+		Vector vector = (Vector) object;
 		double n = ((Number) delta[0]).doubleValue();
 		switch (mode) {
 			case REMOVE:
@@ -94,32 +108,34 @@ public class ExprVectorXYZ extends SimplePropertyExpression<Vector, Number> {
 				//$FALL-THROUGH$
 			case ADD:
 				if (axis == 0)
-					v.setX(v.getX() + n);
+					vector.setX(vector.getX() + n);
 				else if (axis == 1)
-					v.setY(v.getY() + n);
+					vector.setY(vector.getY() + n);
 				else
-					v.setZ(v.getZ() + n);
-				getExpr().change(e, new Vector[] {v}, ChangeMode.SET);
+					vector.setZ(vector.getZ() + n);
+				getExpr().change(e, new Vector[] {vector}, ChangeMode.SET);
 				break;
 			case SET:
 				if (axis == 0)
-					v.setX(n);
+					vector.setX(n);
 				else if (axis == 1)
-					v.setY(n);
+					vector.setY(n);
 				else
-					v.setZ(n);
-				getExpr().change(e, new Vector[] {v}, ChangeMode.SET);
+					vector.setZ(n);
+				getExpr().change(e, new Vector[] {vector}, ChangeMode.SET);
+			default:
+				break;
 		}
 	}
-	
+
 	@Override
 	protected String getPropertyName() {
 		return axes[axis] + " component";
 	}
-	
+
 	@Override
 	public Class<Number> getReturnType() {
 		return Number.class;
 	}
-	
+
 }
