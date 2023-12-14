@@ -44,10 +44,11 @@ import ch.njol.util.Kleenean;
 public class CondStructureExists extends Condition {
 
 	static {
-		Skript.registerCondition(CondStructureExists.class,
-				"structure[s] [named] %strings% [do[es]] exist[s]",
-				"structure[s] [named] %strings% (do[es]n't|do[es] not) exist"
-		);
+		if (Skript.classExists("org.bukkit.structure.Structure"))
+			Skript.registerCondition(CondStructureExists.class,
+					"structure[s] [named] %strings% [do[es]] exist[s]",
+					"structure[s] [named] %strings% (do[es]n't|do[es] not) exist"
+			);
 	}
 
 	private Expression<String> names;

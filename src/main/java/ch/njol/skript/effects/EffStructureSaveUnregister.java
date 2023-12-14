@@ -23,6 +23,7 @@ import java.io.IOException;
 import org.bukkit.Bukkit;
 import org.bukkit.NamespacedKey;
 import org.bukkit.event.Event;
+import org.bukkit.structure.Structure;
 import org.bukkit.structure.StructureManager;
 import org.eclipse.jdt.annotation.Nullable;
 
@@ -39,45 +40,58 @@ import ch.njol.skript.util.Utils;
 import ch.njol.util.Kleenean;
 
 @Name("Structure Save/Unregister")
-@Description("Unregisters or saves a structure by it's namespace key.")
+@Description("Unregisters or saves a structure by it's namespace key. Unregister will unload if the structure was loaded vs Delete.")
 @Examples("unregister structure named \"Example\"")
-@RequiredPlugins("Minecraft 1.17.1+")
+@RequiredPlugins("Spigot 1.17.1+")
 @Since("INSERT VERSION")
 public class EffStructureSaveUnregister extends Effect {
 
 	static {
-		Skript.registerEffect(EffStructureSaveUnregister.class, "(:save|(delete|unregister)) structure[s] [named] %strings%");
+		if (Skript.classExists("org.bukkit.structure.Structure"))
+			Skript.registerEffect(EffStructureSaveUnregister.class, "(:unregister|delete) structure[s] [with name|named] %strings%", "save [structure] %structure% [with name|named] %string%");
 	}
 
+	private Expression<Structure> structure;
 	private Expression<String> names;
-	private boolean save;
+	private boolean save, unregister;
 
 	@Override
 	@SuppressWarnings("unchecked")
 	public boolean init(Expression<?>[] exprs, int matchedPattern, Kleenean isDelayed, ParseResult parseResult) {
-		names = (Expression<String>) exprs[0];
-		save = parseResult.hasTag("save");
+		names = (Expression<String>) exprs[matchedPattern];
+		unregister = parseResult.hasTag("unregister");
+		if (save = matchedPattern == 1)
+			structure = (Expression<Structure>) exprs[0];
 		return true;
 	}
 
 	@Override
 	protected void execute(Event event) {
 		StructureManager manager = Bukkit.getStructureManager();
-		for (String name : names.getArray(event)) {
-			NamespacedKey key = Utils.getNamespacedKey(name);
-			if (key == null)
-				continue;
-			if (save) {
-				manager.saveStructure(key);
-			} else {
+		if (save) {
+			String name = this.names.getSingle(event);
+			if (name == null)
+				return;
+			Structure structure = this.structure.getSingle(event);
+			if (structure == null)
+				return;
+			try {
+				manager.saveStructure(Utils.getNamespacedKey(name), structure);
+			} catch (IOException e) {
+				Skript.exception(e, "Failed to save structure " + name);
+			}
+		} else {
+			for (String name : names.getArray(event)) {
+				NamespacedKey key = Utils.getNamespacedKey(name);
+				if (key == null)
+					continue;
 				try {
-					manager.deleteStructure(key);
+					manager.deleteStructure(key, unregister);
 				} catch (IOException e) {
-					Skript.exception(e, "Failed to save structure " + name);
-					if (Skript.debug())
-						e.printStackTrace();
+					Skript.exception(e, "Failed to delete structure " + name);
 				}
 			}
+			
 		}
 	}
 
