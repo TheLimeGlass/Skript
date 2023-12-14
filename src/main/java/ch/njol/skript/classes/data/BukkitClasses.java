@@ -1582,7 +1582,11 @@ public class BukkitClasses {
 
 						@Override
 						public String toString(Structure structure, int flags) {
-							return "structure " + structure.toString();
+							return Bukkit.getStructureManager().getStructures().entrySet().stream()
+									.filter(entry -> entry.getValue().equals(structure))
+									.map(entry -> "structure " + entry.getKey().asString())
+									.findFirst()
+									.orElse("structure " + structure.toString());
 						}
 
 						@Override

@@ -22,7 +22,10 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
+import org.bukkit.Bukkit;
+import org.bukkit.NamespacedKey;
 import org.bukkit.block.BlockState;
 import org.bukkit.entity.Entity;
 import org.bukkit.event.Event;
@@ -59,13 +62,14 @@ public class ExprStructureInfo extends PropertyExpression<Structure, Object> {
 
 	static {
 		if (Skript.classExists("org.bukkit.structure.Structure"))
-			register(ExprStructureInfo.class, Object.class, "[structure] (:blocks|:entities|size:(size|[lowest] [block] vector))", "structures");
+			register(ExprStructureInfo.class, Object.class, "[structure] (:blocks|:entities|name:name[s]|size:(size|[lowest] [block] vector)[s])", "structures");
 	}
 
 	private enum Property {
 		BLOCKS(BlockStateBlock.class),
 		SIZE(BlockVector.class),
-		ENTITIES(Entity.class);
+		ENTITIES(Entity.class),
+		NAME(String.class);
 
 		private final Class<? extends Object> returnType;
 
@@ -105,6 +109,13 @@ public class ExprStructureInfo extends PropertyExpression<Structure, Object> {
 				return get(source, structure -> structure.getEntities().toArray(Entity[]::new));
 			case SIZE:
 				return get(source, Structure::getSize);
+			case NAME:
+				Map<NamespacedKey, Structure> structures = Bukkit.getStructureManager().getStructures();
+				return get(source, structure -> structures.entrySet().stream()
+						.filter(entry -> entry.getValue().equals(structure))
+						.map(entry -> "structure " + entry.getKey().asString())
+						.findFirst()
+						.orElse("structure " + structure.toString()));
 		}
 		return null;
 	}
@@ -126,7 +137,7 @@ public class ExprStructureInfo extends PropertyExpression<Structure, Object> {
 
 	@Override
 	public boolean isSingle() {
-		return property == Property.SIZE && getExpr().isSingle();
+		return (property == Property.SIZE || property == Property.NAME) && getExpr().isSingle();
 	}
 
 	@Override
