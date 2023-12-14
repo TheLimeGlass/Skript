@@ -19,10 +19,12 @@
 package ch.njol.skript.expressions;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 
 import org.bukkit.Bukkit;
 import org.bukkit.NamespacedKey;
@@ -98,13 +100,14 @@ public class ExprStructureInfo extends PropertyExpression<Structure, Object> {
 	protected Object[] get(Event event, Structure[] source) {
 		switch (property) {
 			case BLOCKS:
-				return get(source, structure -> {
+				return Arrays.stream(source).flatMap(structure -> {
 					if (structure.getPaletteCount() > 0)
 						return structure.getPalettes().get(0).getBlocks().stream()
-								.map(state -> new BlockStateBlock(state, true))
-								.toArray(BlockStateBlock[]::new);
+								.map(state -> new BlockStateBlock(state, true));
 					return null;
-				});
+				})
+				.filter(Objects::nonNull)
+				.toArray(BlockStateBlock[]::new);
 			case ENTITIES:
 				return get(source, structure -> structure.getEntities().toArray(Entity[]::new));
 			case SIZE:

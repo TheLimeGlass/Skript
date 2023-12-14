@@ -39,10 +39,11 @@ import ch.njol.skript.util.Utils;
 import ch.njol.util.Kleenean;
 import ch.njol.util.coll.CollectionUtils;
 
-@Name("Structures")
+@Name("Structure Between/Name")
 @Description({
 	"A structure is a utility that allows you to save a cuboid of blocks and entities.",
 	"This syntax will return an existing structure from memory/datapacks or you can also create a structure between two locations.",
+	"The register tag adds the structure to the 'all structures' expression.",
 	"If the name contains a collon, it'll grab from the Minecraft structure space (Data packs included for namespaces).",
 })
 @Examples({
@@ -57,27 +58,29 @@ public class ExprStructure extends SimpleExpression<Structure> {
 	static {
 		if (Skript.classExists("org.bukkit.structure.Structure"))
 			Skript.registerExpression(ExprStructure.class, Structure.class, ExpressionType.COMBINED,
-					"structure[s] [named] %strings%",
-					"[a] [new] structure between %location% (and|to) %location% [(including|with) :entities] named %string%"
+					"structure[s] [named] %strings% [and register:register]",
+					"[a] [new] structure between %location% (and|to) %location% [(including|with) entities:entities]"
 			);
 	}
 
 	@Nullable
 	private Expression<Location> location1, location2;
+
+	@Nullable
 	private Expression<String> names;
-	private boolean entities;
+	private boolean entities, register;
 
 	@Override
 	@SuppressWarnings("unchecked")
 	public boolean init(Expression<?>[] exprs, int matchedPattern, Kleenean isDelayed, ParseResult parseResult) {
-		entities = parseResult.hasTag("entities");
 		if (matchedPattern == 0) {
 			names = (Expression<String>) exprs[0];
 			return true;
 		}
+		entities = parseResult.hasTag("entities");
+		register = parseResult.hasTag("register");
 		location1 = (Expression<Location>) exprs[0];
 		location2 = (Expression<Location>) exprs[1];
-		names = (Expression<String>) exprs[2];
 		return true;
 	}
 
@@ -86,26 +89,25 @@ public class ExprStructure extends SimpleExpression<Structure> {
 		StructureManager manager = Bukkit.getStructureManager();
 
 		// Returning existing structures.
-		if (location1 == null || location2 == null) {
+		if (names != null) {
 			return names.stream(event)
 					.map(name -> Utils.getNamespacedKey(name))
-					.map(name -> name != null ? manager.loadStructure(name, false) : null)
+					.map(name -> name != null ? manager.loadStructure(name, register) : null)
 					.toArray(Structure[]::new);
 		}
 		Location location1 = this.location1.getSingle(event);
 		Location location2 = this.location2.getSingle(event);
-		String name = this.names.getSingle(event);
-		if (location1 == null || location2 == null || name == null)
+		if (location1 == null || location2 == null)
 			return new Structure[0];
 
-		Structure structure = manager.loadStructure(Utils.getNamespacedKey(name), true);
+		Structure structure = manager.createStructure();
 		structure.fill(location1, location2, entities);
 		return CollectionUtils.array(structure);
 	}
 
 	@Override
 	public boolean isSingle() {
-		return names.isSingle();
+		return names == null || names.isSingle();
 	}
 
 	@Override
@@ -117,8 +119,7 @@ public class ExprStructure extends SimpleExpression<Structure> {
 	public String toString(@Nullable Event event, boolean debug) {
 		if (location1 == null || location2 == null)
 			return "structures " + names.toString(event, debug);
-		return "structure " + names.toString(event, debug) +
-			" from " + location1.toString(event, debug) + " to " + location2.toString(event, debug);
+		return "structure from " + location1.toString(event, debug) + " to " + location2.toString(event, debug);
 	}
 
 }
