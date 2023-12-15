@@ -20,9 +20,11 @@ package ch.njol.skript.expressions;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.World;
 import org.bukkit.event.Event;
 import org.bukkit.structure.Structure;
 import org.bukkit.structure.StructureManager;
+import org.bukkit.util.BlockVector;
 import org.eclipse.jdt.annotation.Nullable;
 
 import ch.njol.skript.Skript;
@@ -35,6 +37,7 @@ import ch.njol.skript.lang.Expression;
 import ch.njol.skript.lang.ExpressionType;
 import ch.njol.skript.lang.SkriptParser.ParseResult;
 import ch.njol.skript.lang.util.SimpleExpression;
+import ch.njol.skript.util.BlockUtils;
 import ch.njol.skript.util.Utils;
 import ch.njol.util.Kleenean;
 import ch.njol.util.coll.CollectionUtils;
@@ -58,7 +61,7 @@ public class ExprStructure extends SimpleExpression<Structure> {
 	static {
 		if (Skript.classExists("org.bukkit.structure.Structure"))
 			Skript.registerExpression(ExprStructure.class, Structure.class, ExpressionType.COMBINED,
-					"structure[s] [named] %strings% [and register:register]",
+					"structure[s] [named] %strings% [register:and don't register]",
 					"[a] [new] structure between %location% (and|to) %location% [(including|with) entities:entities]"
 			);
 	}
@@ -68,7 +71,7 @@ public class ExprStructure extends SimpleExpression<Structure> {
 
 	@Nullable
 	private Expression<String> names;
-	private boolean entities, register;
+	private boolean entities, register = true;
 
 	@Override
 	@SuppressWarnings("unchecked")
@@ -78,7 +81,7 @@ public class ExprStructure extends SimpleExpression<Structure> {
 			return true;
 		}
 		entities = parseResult.hasTag("entities");
-		register = parseResult.hasTag("register");
+		register = !parseResult.hasTag("register");
 		location1 = (Expression<Location>) exprs[0];
 		location2 = (Expression<Location>) exprs[1];
 		return true;
@@ -100,8 +103,19 @@ public class ExprStructure extends SimpleExpression<Structure> {
 		if (location1 == null || location2 == null)
 			return new Structure[0];
 
+		World world1 = location1.getWorld();
+		World world2 = location2.getWorld();
+		if (world1 != world2)
+			return new Structure[0];
+
+		Location lowest = BlockUtils.getLowestBlockLocation(location1, location2);
+		Location highest = BlockUtils.getHighestBlockLocation(location1, location2);
+		int x = (highest.getBlockX() + 1) - lowest.getBlockX();
+		int y = (highest.getBlockY() + 1) - lowest.getBlockY();
+		int z = (highest.getBlockZ() + 1) - lowest.getBlockZ();
+
 		Structure structure = manager.createStructure();
-		structure.fill(location1, location2, entities);
+		structure.fill(lowest, new BlockVector(x, y, z), entities);
 		return CollectionUtils.array(structure);
 	}
 
