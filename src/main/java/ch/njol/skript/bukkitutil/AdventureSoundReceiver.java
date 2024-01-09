@@ -57,7 +57,7 @@ public interface AdventureSoundReceiver<T, E> {
 				sound = sound.toLowerCase(Locale.ENGLISH);
 				if (!EffPlaySound.KEY_PATTERN.matcher(sound).matches())
 					continue;
-				key = NamespacedKey.minecraft(sound);
+				key = NamespacedKey.fromString(sound);
 			}
 
 			if (key == null)
