@@ -23,6 +23,7 @@ import org.eclipse.jdt.annotation.Nullable;
 
 import ch.njol.skript.lang.Literal;
 import ch.njol.skript.lang.SkriptParser.ParseResult;
+import ch.njol.skript.util.Timespan;
 
 public class TNTData extends EntityData<TNTPrimed> {
 
@@ -31,31 +32,31 @@ public class TNTData extends EntityData<TNTPrimed> {
 	}
 
 	@Nullable
-	private Integer fuseTime;
+	private Timespan fuseTime;
 
 	@Override
 	@SuppressWarnings("unchecked")
 	protected boolean init(Literal<?>[] exprs, int matchedPattern, ParseResult parseResult) {
 		if (exprs.length > 0 && exprs[0] != null)
-			fuseTime = ((Literal<Integer>) exprs[0]).getSingle();
+			fuseTime = ((Literal<Timespan>) exprs[0]).getSingle();
 		return true;
 	}
 
 	@Override
 	protected boolean init(@Nullable Class<? extends TNTPrimed> tntClass, @Nullable TNTPrimed tnt) {
-		fuseTime = (fuseTime == null) ? null : tnt.getFuseTicks();
+		fuseTime = (fuseTime == null) ? null : Timespan.fromTicks(tnt.getFuseTicks());
 		return true;
 	}
 
 	@Override
 	public void set(TNTPrimed tnt) {
 		if (fuseTime != null)
-			tnt.setFuseTicks(fuseTime);
+			tnt.setFuseTicks((int) fuseTime.getTicks());
 	}
 
 	@Override
 	protected boolean match(TNTPrimed tnt) {
-		return fuseTime == null || tnt.getFuseTicks() == fuseTime;
+		return fuseTime == null || tnt.getFuseTicks() == (int) fuseTime.getTicks();
 	}
 
 	@Override
@@ -70,7 +71,8 @@ public class TNTData extends EntityData<TNTPrimed> {
 
 	@Override
 	protected int hashCode_i() {
-		return fuseTime != null ? fuseTime.hashCode() : 0;
+		return 0;
+//		/return fuseTime != null ? fuseTime.hashCode() : 0;
 	}
 
 	@Override
