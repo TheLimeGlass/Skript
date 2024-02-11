@@ -41,6 +41,7 @@ import ch.njol.skript.log.RetainingLogHandler;
 import ch.njol.skript.log.SkriptLogger;
 import ch.njol.skript.util.Utils;
 import ch.njol.skript.variables.Variables;
+import ch.njol.util.coll.CollectionUtils;
 
 /**
  * Represents an argument of a command
@@ -118,8 +119,13 @@ public class Argument<T> {
 	}
 
 	public void setToDefault(ScriptCommandEvent event) {
-		if (defaultExpression != null)
-			set(event, defaultExpression.getArray(event));
+		if (defaultExpression != null) {
+			if (defaultExpression instanceof ExprTabCompletions) {
+				set(event, CollectionUtils.array(defaultExpression.getArray(event)[0]));
+			} else {
+				set(event, defaultExpression.getArray(event));
+			}
+		}
 	}
 
 	@SuppressWarnings("unchecked")
