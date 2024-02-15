@@ -19,19 +19,20 @@
 package ch.njol.skript.entity;
 
 import java.util.Arrays;
+
 import java.util.Iterator;
+import java.util.function.Consumer;
 
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.entity.FallingBlock;
-import org.bukkit.util.Consumer;
 import org.eclipse.jdt.annotation.Nullable;
 
 import ch.njol.skript.Skript;
 import ch.njol.skript.aliases.ItemData;
 import ch.njol.skript.aliases.ItemType;
 import ch.njol.skript.bukkitutil.block.BlockCompat;
-import ch.njol.skript.classes.Converter;
+import org.skriptlang.skript.lang.converter.Converter;
 import ch.njol.skript.lang.Literal;
 import ch.njol.skript.lang.SkriptParser.ParseResult;
 import ch.njol.skript.localization.Adjective;
@@ -39,12 +40,9 @@ import ch.njol.skript.localization.Language;
 import ch.njol.skript.localization.Message;
 import ch.njol.skript.localization.Noun;
 import ch.njol.skript.registrations.Classes;
-import ch.njol.skript.registrations.Converters;
+import org.skriptlang.skript.lang.converter.Converters;
 import ch.njol.util.coll.CollectionUtils;
 
-/**
- * @author Peter Güttinger
- */
 public class FallingBlockData extends EntityData<FallingBlock> {
 	static {
 		EntityData.register(FallingBlockData.class, "falling block", FallingBlock.class, "falling block");
@@ -52,7 +50,7 @@ public class FallingBlockData extends EntityData<FallingBlock> {
 	
 	private final static Message m_not_a_block_error = new Message("entities.falling block.not a block error");
 	private final static Adjective m_adjective = new Adjective("entities.falling block.adjective");
-	
+
 	@Nullable
 	private ItemType[] types = null;
 	
@@ -114,14 +112,14 @@ public class FallingBlockData extends EntityData<FallingBlock> {
 	@Override
 	@Nullable
 	public FallingBlock spawn(Location loc, @Nullable Consumer<FallingBlock> consumer) {
-		ItemType t = CollectionUtils.getRandom(types);
+		ItemType t = types == null ? new ItemType(Material.STONE) : CollectionUtils.getRandom(types);
 		assert t != null;
 		Material material = t.getMaterial();
-
 		if (!material.isBlock()) {
 			assert false : t;
 			return null;
 		}
+
 		FallingBlock fallingBlock = loc.getWorld().spawnFallingBlock(loc, material.createBlockData());
 		if (consumer != null)
 			consumer.accept(fallingBlock);
