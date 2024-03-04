@@ -84,7 +84,7 @@ public class EffCancelEvent extends Effect {
 			return true;
 		// Some events are cancellable.
 		if (cancellable > 0) {
-			if (!getParser().getCurrentScript().suppressesWarning(ScriptWarning.VARIABLE_SAVE))
+			if (!getParser().getCurrentScript().suppressesWarning(ScriptWarning.EVENT_CANNOT_BE_CANCELLED))
 				Skript.warning(Utils.A(getParser().getCurrentEventName()) + " can be called by multiple events, and some cannot be cancelled.");
 			return true;
 		}
