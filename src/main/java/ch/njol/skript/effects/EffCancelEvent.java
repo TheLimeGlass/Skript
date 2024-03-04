@@ -63,8 +63,10 @@ public class EffCancelEvent extends Effect {
 
 	@Override
 	public boolean init(Expression<?>[] vars, int matchedPattern, Kleenean isDelayed, ParseResult parser) {
-		if (getParser().isCurrentEvent(PlayerLoginEvent.class))
+		if (getParser().isCurrentEvent(PlayerLoginEvent.class)) {
 			Skript.error("A connect event cannot be cancelled, but the player may be kicked ('kick player by reason of \"...\"')");
+			return false;
+		}
 		if (isDelayed == Kleenean.TRUE) {
 			Skript.error("Can't cancel an event anymore after it has already passed");
 			return false;
