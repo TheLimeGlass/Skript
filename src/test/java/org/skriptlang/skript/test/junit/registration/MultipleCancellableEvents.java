@@ -84,7 +84,7 @@ public class MultipleCancellableEvents extends SkriptEvent {
 
 	}
 
-	boolean done;
+	static boolean done;
 
 	@Override
 	public boolean init(Literal<?>[] args, int matchedPattern, ParseResult parseResult) {
