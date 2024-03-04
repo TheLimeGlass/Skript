@@ -85,7 +85,7 @@ public class EffSuppressWarnings extends Effect {
 				word = "starting expression";
 				break;
 			case EVENT_CANCEL:
-				word = "cannot cancel events";
+				word = "cannot cancel event";
 				break;
 			default:
 				throw new IllegalStateException();
