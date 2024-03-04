@@ -29,6 +29,6 @@ public enum ScriptWarning {
 
 	VARIABLE_STARTS_WITH_EXPRESSION, // Variable starts with an Expression
 
-	EVENT_CANNOT_BE_CANCELLED // Suppressable because an event structure can contain multiple events, and some may be cancellable and others not.
+	EVENT_CANNOT_BE_CANCELLED // Suppressible because an event structure can contain multiple events, and some may be cancellable and others not.
 
 }
