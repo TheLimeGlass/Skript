@@ -89,7 +89,7 @@ public class EffCancelEvent extends Effect {
 			return true;
 		}
 		// No events are cancellable.
-		Skript.error(Utils.A(getParser().getCurrentEventName()) + " event cannot be cancelled", ErrorQuality.SEMANTIC_ERROR);
+		Skript.error(Utils.A(getParser().getCurrentEventName()) + " event cannot be cancelled");
 		return false;
 	}
 
