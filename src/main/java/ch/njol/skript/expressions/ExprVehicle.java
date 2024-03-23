@@ -53,7 +53,7 @@ public class ExprVehicle extends SimplePropertyExpression<Entity, Entity> {
 	}
 
 	@Override
-	protected Entity[] get(final Event e, final Entity[] source) {
+	protected Entity[] get(Event event, Entity[] source) {
 		return get(source, entity -> {
 			if (getTime() >= 0 && e instanceof VehicleEnterEvent && entity.equals(((VehicleEnterEvent) e).getEntered())) {
 				return ((VehicleEnterEvent) e).getVehicle();
