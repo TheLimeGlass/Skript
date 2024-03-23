@@ -70,6 +70,7 @@ public class CondIsPathfinding extends Condition {
 	public boolean init(Expression<?>[] expressions, int matchedPattern, Kleenean isDelayed, ParseResult parseResult) {
 		entities = (Expression<LivingEntity>) expressions[0];
 		target = expressions[1];
+		setNegated(matchedPattern == 1);
 		return true;
 	}
 
@@ -92,7 +93,7 @@ public class CondIsPathfinding extends Condition {
 			assert target instanceof LivingEntity;
 			LivingEntity entityTarget = (LivingEntity) target;
 			return location.distance(((Mob) entityTarget).getLocation()) < 1;
-		});
+		}, isNegated());
 	}
 
 	@Override
