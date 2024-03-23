@@ -56,18 +56,18 @@ public class ExprVehicle extends SimplePropertyExpression<Entity, Entity> {
 	@Override
 	protected Entity[] get(Event event, Entity[] source) {
 		return get(source, entity -> {
-			if (getTime() >= 0 && e instanceof VehicleEnterEvent && entity.equals(((VehicleEnterEvent) e).getEntered()) && !Delay.isDelayed(e)) {
-				return ((VehicleEnterEvent) e).getVehicle();
+			if (getTime() >= 0 && event instanceof VehicleEnterEvent && entity.equals(((VehicleEnterEvent) event).getEntered()) && !Delay.isDelayed(event)) {
+				return ((VehicleEnterEvent) event).getVehicle();
 			}
-			if (getTime() >= 0 && e instanceof VehicleExitEvent && entity.equals(((VehicleExitEvent) e).getExited()) && !Delay.isDelayed(e)) {
-				return ((VehicleExitEvent) e).getVehicle();
+			if (getTime() >= 0 && event instanceof VehicleExitEvent && entity.equals(((VehicleExitEvent) event).getExited()) && !Delay.isDelayed(event)) {
+				return ((VehicleExitEvent) event).getVehicle();
 			}
 			if (hasMountEvents) {
-				if (getTime() >= 0 && e instanceof EntityMountEvent && entity.equals(((EntityMountEvent) e).getEntity()) && !Delay.isDelayed(e)) {
-					return ((EntityMountEvent) e).getMount();
+				if (getTime() >= 0 && event instanceof EntityMountEvent && entity.equals(((EntityMountEvent) event).getEntity()) && !Delay.isDelayed(event)) {
+					return ((EntityMountEvent) event).getMount();
 				}
-				if (getTime() >= 0 && e instanceof EntityDismountEvent && entity.equals(((EntityDismountEvent) e).getEntity()) && !Delay.isDelayed(e)) {
-					return ((EntityDismountEvent) e).getDismounted();
+				if (getTime() >= 0 && event instanceof EntityDismountEvent && entity.equals(((EntityDismountEvent) event).getEntity()) && !Delay.isDelayed(event)) {
+					return ((EntityDismountEvent) event).getDismounted();
 				}
 			}
 			return entity.getVehicle();
