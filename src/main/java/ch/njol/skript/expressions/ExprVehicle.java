@@ -24,6 +24,7 @@ import ch.njol.skript.doc.Description;
 import ch.njol.skript.doc.Examples;
 import ch.njol.skript.doc.Name;
 import ch.njol.skript.doc.Since;
+import ch.njol.skript.effects.Delay;
 import ch.njol.skript.entity.EntityData;
 import ch.njol.skript.expressions.base.SimplePropertyExpression;
 import ch.njol.util.coll.CollectionUtils;
@@ -55,17 +56,17 @@ public class ExprVehicle extends SimplePropertyExpression<Entity, Entity> {
 	@Override
 	protected Entity[] get(final Event e, final Entity[] source) {
 		return get(source, entity -> {
-			if (getTime() >= 0 && e instanceof VehicleEnterEvent && entity.equals(((VehicleEnterEvent) e).getEntered())) {
+			if (getTime() >= 0 && e instanceof VehicleEnterEvent && entity.equals(((VehicleEnterEvent) e).getEntered()) && !Delay.isDelayed(e)) {
 				return ((VehicleEnterEvent) e).getVehicle();
 			}
-			if (getTime() >= 0 && e instanceof VehicleExitEvent && entity.equals(((VehicleExitEvent) e).getExited())) {
+			if (getTime() >= 0 && e instanceof VehicleExitEvent && entity.equals(((VehicleExitEvent) e).getExited()) && !Delay.isDelayed(e)) {
 				return ((VehicleExitEvent) e).getVehicle();
 			}
 			if (hasMountEvents) {
-				if (getTime() >= 0 && e instanceof EntityMountEvent && entity.equals(((EntityMountEvent) e).getEntity())) {
+				if (getTime() >= 0 && e instanceof EntityMountEvent && entity.equals(((EntityMountEvent) e).getEntity()) && !Delay.isDelayed(e)) {
 					return ((EntityMountEvent) e).getMount();
 				}
-				if (getTime() >= 0 && e instanceof EntityDismountEvent && entity.equals(((EntityDismountEvent) e).getEntity())) {
+				if (getTime() >= 0 && e instanceof EntityDismountEvent && entity.equals(((EntityDismountEvent) e).getEntity()) && !Delay.isDelayed(e)) {
 					return ((EntityDismountEvent) e).getDismounted();
 				}
 			}
