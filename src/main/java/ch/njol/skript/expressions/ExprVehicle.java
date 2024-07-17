@@ -19,7 +19,6 @@
 package ch.njol.skript.expressions;
 
 import java.util.function.Predicate;
-import java.util.stream.Stream;
 
 import ch.njol.skript.Skript;
 import ch.njol.skript.classes.Changer.ChangeMode;
