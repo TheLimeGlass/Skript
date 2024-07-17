@@ -19,7 +19,9 @@
 package ch.njol.skript.expressions;
 
 import java.util.function.Predicate;
+import java.util.stream.Stream;
 
+import ch.njol.skript.Skript;
 import ch.njol.skript.classes.Changer.ChangeMode;
 import ch.njol.skript.doc.Description;
 import ch.njol.skript.doc.Examples;
@@ -79,8 +81,13 @@ public class ExprVehicle extends SimplePropertyExpression<Entity, Entity> {
 	@Override
 	@Nullable
 	public Class<?>[] acceptChange(ChangeMode mode) {
-		if (mode == ChangeMode.SET)
+		if (mode == ChangeMode.SET) {
+			if (isDefault() && getParser().isCurrentEvent(VehicleExitEvent.class, EntityDismountEvent.class)) {
+				Skript.error("Setting the vehicle during a dismount/exit vehicle event will create an infinite mounting loop.");
+				return null;
+			}
 			return new Class[] {Entity.class, EntityData.class};
+		}
 		return super.acceptChange(mode);
 	}
 
@@ -96,15 +103,20 @@ public class ExprVehicle extends SimplePropertyExpression<Entity, Entity> {
 			if (event instanceof VehicleEnterEvent && predicate.test(((VehicleEnterEvent) event).getEntered())) {
 				return;
 			}
-			assert delta != null;
 			Entity[] passengers = getExpr().getArray(event);
 			if (passengers.length == 0)
 				return;
+			assert delta != null;
 			Object object = delta[0];
 			if (object instanceof Entity) {
 				Entity entity = (Entity) object;
 				entity.eject();
 				for (Entity passenger : passengers) {
+					// Avoid infinity mounting
+					if (event instanceof VehicleExitEvent && predicate.test(passenger) && passenger.equals(((VehicleExitEvent) event).getExited()))
+						continue;
+					if (event instanceof EntityDismountEvent && predicate.test(passenger) && passenger.equals(((EntityDismountEvent) event).getEntity()))
+						continue;
 					assert passenger != null;
 					passenger.leaveVehicle();
 					entity.addPassenger(passenger);
@@ -112,6 +124,11 @@ public class ExprVehicle extends SimplePropertyExpression<Entity, Entity> {
 			} else if (object instanceof EntityData) {
 				EntityData<?> entityData = (EntityData<?>) object;
 				for (Entity passenger : passengers) {
+					// Avoid infinity mounting
+					if (event instanceof VehicleExitEvent && predicate.test(passenger) && passenger.equals(((VehicleExitEvent) event).getExited()))
+						continue;
+					if (event instanceof EntityDismountEvent && predicate.test(passenger) && passenger.equals(((EntityDismountEvent) event).getEntity()))
+						continue;
 					Entity vehicle = entityData.spawn(passenger.getLocation());
 					if (vehicle == null)
 						continue;
