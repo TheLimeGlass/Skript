@@ -19,6 +19,7 @@
 package ch.njol.skript.classes.data;
 
 import java.io.StreamCorruptedException;
+import java.lang.reflect.Constructor;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -29,7 +30,34 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import ch.njol.skript.Skript;
+import ch.njol.skript.SkriptConfig;
+import ch.njol.skript.aliases.Aliases;
+import ch.njol.skript.aliases.ItemType;
 import ch.njol.skript.bukkitutil.BukkitUtils;
+import ch.njol.skript.bukkitutil.EnchantmentUtils;
+import ch.njol.skript.bukkitutil.ItemUtils;
+import ch.njol.skript.classes.ClassInfo;
+import ch.njol.skript.classes.ConfigurationSerializer;
+import ch.njol.skript.classes.EnumClassInfo;
+import ch.njol.skript.classes.Parser;
+import ch.njol.skript.classes.Serializer;
+import ch.njol.skript.classes.registry.RegistryClassInfo;
+import ch.njol.skript.entity.EntityData;
+import ch.njol.skript.expressions.ExprDamageCause;
+import ch.njol.skript.expressions.base.EventValueExpression;
+import ch.njol.skript.lang.ParseContext;
+import ch.njol.skript.lang.util.SimpleLiteral;
+import ch.njol.skript.localization.Language;
+import ch.njol.skript.registrations.Classes;
+import ch.njol.skript.util.BlockUtils;
+import ch.njol.skript.util.PotionEffectUtils;
+import ch.njol.skript.util.StringMode;
+import ch.njol.util.StringUtils;
+import ch.njol.yggdrasil.Fields;
+
+import io.papermc.paper.world.MoonPhase;
+
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.Difficulty;
@@ -79,32 +107,6 @@ import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.util.CachedServerIcon;
 import org.bukkit.util.Vector;
-
-import ch.njol.skript.Skript;
-import ch.njol.skript.SkriptConfig;
-import ch.njol.skript.aliases.Aliases;
-import ch.njol.skript.aliases.ItemType;
-import ch.njol.skript.bukkitutil.EnchantmentUtils;
-import ch.njol.skript.bukkitutil.ItemUtils;
-import ch.njol.skript.classes.ClassInfo;
-import ch.njol.skript.classes.ConfigurationSerializer;
-import ch.njol.skript.classes.EnumClassInfo;
-import ch.njol.skript.classes.Parser;
-import ch.njol.skript.classes.Serializer;
-import ch.njol.skript.classes.registry.RegistryClassInfo;
-import ch.njol.skript.entity.EntityData;
-import ch.njol.skript.expressions.ExprDamageCause;
-import ch.njol.skript.expressions.base.EventValueExpression;
-import ch.njol.skript.lang.ParseContext;
-import ch.njol.skript.lang.util.SimpleLiteral;
-import ch.njol.skript.localization.Language;
-import ch.njol.skript.registrations.Classes;
-import ch.njol.skript.util.BlockUtils;
-import ch.njol.skript.util.PotionEffectUtils;
-import ch.njol.skript.util.StringMode;
-import ch.njol.util.StringUtils;
-import ch.njol.yggdrasil.Fields;
-import io.papermc.paper.world.MoonPhase;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -1408,20 +1410,97 @@ public class BukkitClasses {
 				.since("2.5"));
 
 		if (Skript.classExists("org.bukkit.entity.Cat$Type")) {
-			ClassInfo<Cat.Type> catTypeClassInfo;
+			ClassInfo<Cat.Type> catTypeClassInfo = null;
 			if (BukkitUtils.registryExists("CAT_VARIANT")) {
 				catTypeClassInfo = new RegistryClassInfo<>(Cat.Type.class, Registry.CAT_VARIANT, "cattype", "cat types");
 			} else {
-				catTypeClassInfo = new EnumClassInfo<>(Cat.Type.class, "cattype", "cat types");
+				if (Cat.Type.class.isEnum()) {
+					try {
+						@SuppressWarnings("rawtypes")
+						Constructor<EnumClassInfo> constructor = EnumClassInfo.class.getConstructor(Class.class, String.class, String.class);
+						catTypeClassInfo = constructor.newInstance(Cat.Type.class, "cattype", "cat types");
+					} catch (Exception ignore) {}
+				} else { // In the middle of 1.21 Spigot made Cat.Type an OldEnum
+					catTypeClassInfo = new ClassInfo<>(Cat.Type.class, "cattype")
+							.usage(Arrays.stream(Cat.Type.values()).map(Cat.Type::name).map(name -> name.toLowerCase(Locale.ENGLISH)).collect(Collectors.joining(", ")))
+							.defaultExpression(new EventValueExpression<>(Cat.Type.class))
+							.serializer(new Serializer<Cat.Type>() {
+								@Override
+								@Deprecated
+								@Nullable
+								public Cat.Type deserialize(String s) {
+									try {
+										return Cat.Type.valueOf(s);
+									} catch (final IllegalArgumentException e) {
+										return null;
+									}
+								}
+								
+								@Override
+								public Fields serialize(Cat.Type e) {
+									Fields fields = new Fields();
+									fields.putPrimitive("name", e.name());
+									return fields;
+								}
+								
+								@Override
+								@SuppressWarnings("deprecation")
+								public Cat.Type deserialize(Fields fields) {
+									try {
+										return Cat.Type.valueOf(fields.getAndRemovePrimitive("name", String.class));
+									} catch (IllegalArgumentException | StreamCorruptedException e) {
+										return null;
+									}
+								}
+								
+								@Override
+								public void deserialize(Cat.Type o, Fields f) {
+									assert false;
+								}
+								
+								@Override
+								public boolean mustSyncDeserialization() {
+									return false;
+								}
+								
+								@Override
+								protected boolean canBeInstantiated() {
+									return false;
+								}
+							})
+							.parser(new Parser<Cat.Type>() {
+								@Override
+								@Nullable
+								public Cat.Type parse(String s, ParseContext context) {
+									try {
+										return Cat.Type.valueOf(s);
+									} catch (final IllegalArgumentException e) {
+										return null;
+									}
+								}
+
+								@Override
+								public String toString(Cat.Type o, int flags) {
+									return o.name();
+								}
+
+								@Override
+								public String toVariableNameString(Cat.Type o) {
+									return o.name();
+								}
+							});
+				}
 			}
-			Classes.registerClass(catTypeClassInfo
-					.user("cat ?(type|race)s?")
-					.name("Cat Type")
-					.description("Represents the race/type of a cat entity.",
-						"NOTE: Minecraft namespaces are supported, ex: 'minecraft:british_shorthair'.")
-					.since("2.4")
-					.requiredPlugins("Minecraft 1.14 or newer")
-					.documentationId("CatType"));
+			if (catTypeClassInfo != null) {
+				Classes.registerClass(catTypeClassInfo
+						.user("cat ?(type|race)s?")
+						.name("Cat Type")
+						.description("Represents the race/type of a cat entity.",
+							"NOTE: Minecraft namespaces are supported, ex: 'minecraft:british_shorthair'.")
+						.since("2.4")
+						.requiredPlugins("Minecraft 1.14 or newer")
+						.documentationId("CatType"));
+			}
 		}
 
 		Classes.registerClass(new ClassInfo<>(GameRule.class, "gamerule")
