@@ -62,17 +62,17 @@ public class ExprVehicle extends SimplePropertyExpression<Entity, Entity> {
 	@Override
 	protected Entity[] get(Event event, Entity[] source) {
 		return get(source, entity -> {
-			if (getTime() >= 0 && event instanceof VehicleEnterEvent && entity.equals(((VehicleEnterEvent) event).getEntered())) {
-				return ((VehicleEnterEvent) event).getVehicle();
+			if (getTime() >= 0 && event instanceof VehicleEnterEvent vehicleEnterEvent && entity.equals(vehicleEnterEvent.getEntered())) {
+				return vehicleEnterEvent.getVehicle();
 			}
-			if (getTime() <= 0 && event instanceof VehicleExitEvent && entity.equals(((VehicleExitEvent) event).getExited())) {
-				return ((VehicleExitEvent) event).getVehicle();
+			if (getTime() <= 0 && event instanceof VehicleExitEvent vehicleExitEvent && entity.equals(vehicleExitEvent.getExited())) {
+				return vehicleExitEvent.getVehicle();
 			}
-			if (getTime() >= 0 && event instanceof EntityMountEvent && entity.equals(((EntityMountEvent) event).getEntity())) {
-				return ((EntityMountEvent) event).getMount();
+			if (getTime() >= 0 && event instanceof EntityMountEvent entityMountEvent && entity.equals(entityMountEvent.getEntity())) {
+				return entityMountEvent.getMount();
 			}
-			if (getTime() <= 0 && event instanceof EntityDismountEvent && entity.equals(((EntityDismountEvent) event).getEntity())) {
-				return ((EntityDismountEvent) event).getDismounted();
+			if (getTime() <= 0 && event instanceof EntityDismountEvent entityDismountEvent && entity.equals(entityDismountEvent.getEntity())) {
+				return entityDismountEvent.getDismounted();
 			}
 			return entity.getVehicle();
 		});
@@ -103,10 +103,10 @@ public class ExprVehicle extends SimplePropertyExpression<Entity, Entity> {
 			// The player can desync if setting an entity as it's currently mounting it.
 			// Remember that there can be other entity types aside from players, so only cancel this for players.
 			Predicate<Entity> predicate = Player.class::isInstance;
-			if (event instanceof EntityMountEvent && predicate.test(((EntityMountEvent) event).getEntity())) {
+			if (event instanceof EntityMountEvent entityMountEvent && predicate.test(entityMountEvent.getEntity())) {
 				return;
 			}
-			if (event instanceof VehicleEnterEvent && predicate.test(((VehicleEnterEvent) event).getEntered())) {
+			if (event instanceof VehicleEnterEvent vehicleEnterEvent && predicate.test(vehicleEnterEvent.getEntered())) {
 				return;
 			}
 			Entity[] passengers = getExpr().getArray(event);
@@ -129,11 +129,13 @@ public class ExprVehicle extends SimplePropertyExpression<Entity, Entity> {
 				}
 			} else if (object instanceof EntityData) {
 				EntityData<?> entityData = (EntityData<?>) object;
+				VehicleExitEvent vehicleExitEvent = event instanceof VehicleExitEvent ? (VehicleExitEvent) event : null;
+				EntityDismountEvent entityDismountEvent = event instanceof EntityDismountEvent ? (EntityDismountEvent) event : null;
 				for (Entity passenger : passengers) {
 					// Avoid infinity mounting
-					if (event instanceof VehicleExitEvent && predicate.test(passenger) && passenger.equals(((VehicleExitEvent) event).getExited()))
+					if (vehicleExitEvent != null && predicate.test(passenger) && passenger.equals(vehicleExitEvent.getExited()))
 						continue;
-					if (event instanceof EntityDismountEvent && predicate.test(passenger) && passenger.equals(((EntityDismountEvent) event).getEntity()))
+					if (entityDismountEvent != null && predicate.test(passenger) && passenger.equals(entityDismountEvent.getEntity()))
 						continue;
 					Entity vehicle = entityData.spawn(passenger.getLocation());
 					if (vehicle == null)
