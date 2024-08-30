@@ -42,11 +42,11 @@ public class EffSuppressWarnings extends Effect {
 
 	static {
 		Skript.registerEffect(EffSuppressWarnings.class,
-			"[local[ly]] suppress [the] (1:conflict|2:variable save|3:[missing] conjunction[s]|4:starting [with] expression[s]|5:event cannot be cancelled) warning[s]"
+			"[local[ly]] suppress [the] (1:conflict|2:variable save|3:[missing] conjunction[s]|4:starting [with] expression[s]|5:deprecated syntax|6::event cannot be cancelled) warning[s]"
 		);
 	}
 
-	private static final int CONFLICT = 1, INSTANCE = 2, CONJUNCTION = 3, START_EXPR = 4, EVENT_CANCEL = 5;
+	private static final int CONFLICT = 1, INSTANCE = 2, CONJUNCTION = 3, START_EXPR = 4, DEPRECATED = 5, EVENT_CANCEL = 6;
 	private int mark = 0;
 
 	@Override
@@ -83,6 +83,9 @@ public class EffSuppressWarnings extends Effect {
 				break;
 			case START_EXPR:
 				word = "starting expression";
+				break;
+			case DEPRECATED:
+				word = "deprecated syntax";
 				break;
 			case EVENT_CANCEL:
 				word = "cannot cancel events";
