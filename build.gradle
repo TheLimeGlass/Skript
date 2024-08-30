@@ -185,7 +185,7 @@ void createTestTask(String name, String desc, String environments, int javaVersi
 	}
 	tasks.register(name, JavaExec) {
 		description = desc
-		devMode = modifiers.contains(Modifiers.DEV_MODE)
+		boolean devMode = modifiers.contains(Modifiers.DEV_MODE)
 		if (junit || devMode) {
 			dependsOn testJar
 		} else if (releaseDocs) {
