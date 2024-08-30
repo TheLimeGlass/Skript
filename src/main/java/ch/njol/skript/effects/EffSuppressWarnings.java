@@ -88,7 +88,7 @@ public class EffSuppressWarnings extends Effect {
 				word = "deprecated syntax";
 				break;
 			case EVENT_CANCEL:
-				word = "cannot cancel events";
+				word = "cannot cancel event";
 				break;
 			default:
 				throw new IllegalStateException();
