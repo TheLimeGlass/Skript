@@ -76,7 +76,7 @@ public class EffTeleport extends Effect {
 	static {
 		String extra = "";
 		if (TELEPORT_FLAGS_SUPPORTED)
-			extra = " [[[while] retaining] %-teleportflags%]";
+			extra = " [[while] retaining %-teleportflags%]";
 		Skript.registerEffect(EffTeleport.class, "[:force] teleport %entities% (to|%direction%) %location%" + extra);
 	}
 
