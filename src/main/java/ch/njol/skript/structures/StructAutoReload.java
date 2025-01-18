@@ -3,8 +3,6 @@ package ch.njol.skript.structures;
 import ch.njol.skript.ScriptLoader;
 import ch.njol.skript.Skript;
 import ch.njol.skript.SkriptConfig;
-import ch.njol.skript.config.EntryNode;
-import ch.njol.skript.config.Node;
 import ch.njol.skript.doc.Description;
 import ch.njol.skript.doc.Examples;
 import ch.njol.skript.doc.Name;
@@ -18,19 +16,12 @@ import ch.njol.skript.localization.Language;
 import ch.njol.skript.localization.PluralizingArgsMessage;
 import ch.njol.skript.log.LogEntry;
 import ch.njol.skript.log.RedirectingLogHandler;
-import ch.njol.skript.log.SkriptLogger;
 import ch.njol.skript.log.TimingLogHandler;
 import ch.njol.skript.util.Task;
 import ch.njol.skript.util.Utils;
 import ch.njol.util.OpenCloseable;
 import ch.njol.util.StringUtils;
-import java.io.File;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.logging.Level;
-
+import com.google.common.collect.Lists;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
@@ -39,14 +30,17 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.Unmodifiable;
 import org.skriptlang.skript.lang.entry.EntryContainer;
-import org.skriptlang.skript.lang.entry.EntryData;
 import org.skriptlang.skript.lang.entry.EntryValidator;
-import org.skriptlang.skript.lang.entry.KeyValueEntryData;
+import org.skriptlang.skript.lang.entry.util.ExpressionEntryData;
 import org.skriptlang.skript.lang.script.Script;
 import org.skriptlang.skript.lang.script.ScriptData;
 import org.skriptlang.skript.lang.structure.Structure;
 
-import com.google.common.collect.Lists;
+import java.io.File;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.logging.Level;
 
 @Name("Auto Reload")
 @Description({
@@ -71,26 +65,16 @@ public class StructAutoReload extends Structure {
 	public static final Priority PRIORITY = new Priority(10);
 
 	static {
-		Skript.registerStructure(StructAutoReload.class, "auto[matically] reload");
+		EntryValidator validator = EntryValidator.builder()
+			// Uses OfflinePlayer because this is determined at parse time. Runtime will make sure it's a Player.
+			.addEntryData(new ExpressionEntryData<>("recipients", null, true, String.class))
+			.addEntry("permission", "skript.reloadnotify", true)
+			.build();
+		Skript.registerStructure(StructAutoReload.class, validator, "auto[matically] reload");
 	}
 
 	private Script script;
 	private Task task;
-
-	@Override
-	public EntryValidator entryValidator(Literal<?> @NotNull [] arguments, int matchedPattern, ParseResult parseResult) {
-		return EntryValidator.builder()
-			// Uses OfflinePlayer because this is determined at parse time. Runtime will make sure it's a Player.
-			.addEntryData(new KeyValueEntryData<OfflinePlayer[]>("recipients", null, true) {
-				@Override
-				protected OfflinePlayer @Nullable [] getValue(String value) {
-					Literal<? extends OfflinePlayer> recipients = SkriptParser.parseLiteral(value, OfflinePlayer.class, ParseContext.DEFAULT);
-					return recipients.getArray();
-				}
-			})
-			.addEntry("permission", "skript.reloadnotify", true)
-			.build();
-	}
 
 	@Override
 	public boolean init(Literal<?> @NotNull [] arguments, int pattern, ParseResult result, EntryContainer container) {
@@ -103,12 +87,22 @@ public class StructAutoReload extends Structure {
 			return false;
 		}
 
-		OfflinePlayer[] recipients = null;
+		List<OfflinePlayer> recipients = new ArrayList<>();
 		String permission = "skript.reloadnotify";
 
 		// Container can be null if the structure is simple.
 		if (container != null) {
-			recipients = container.getOptional("recipients", OfflinePlayer[].class, false); // Must be false otherwise the API will throw an exception.
+			//recipients = container.getOptional("recipients", OfflinePlayer[].class, false); // Must be false otherwise the API will throw an exception.
+			@SuppressWarnings("unchecked")
+			Literal<String> strings = (Literal<String>) container.getOptional("recipients", false);
+			if (strings != null) {
+				for (String s : strings.getArray()) {
+					Literal<? extends OfflinePlayer> literal = SkriptParser.parseLiteral(s, OfflinePlayer.class, ParseContext.PARSE);
+					if (literal != null) {
+						recipients.add(literal.getSingle());
+					}
+				}
+			}
 			permission = container.getOptional("permission", String.class, false);
 		}
 
@@ -191,16 +185,15 @@ public class StructAutoReload extends Structure {
 	public final class AutoReload implements ScriptData {
 
 		private final List<OfflinePlayer> recipients = new ArrayList<>();
+		private String permission;
 		private long lastReload; // Compare with File#lastModified()
 
 		// private constructor to prevent instantiation.
-		private AutoReload(long lastReload, @Nullable String permission, @Nullable OfflinePlayer... recipients) {
+		private AutoReload(long lastReload, @Nullable String permission, @Nullable List<OfflinePlayer> recipients) {
 			if (recipients != null) {
-				this.recipients.addAll(Lists.newArrayList(recipients));
+				this.recipients.addAll(recipients);
 			} else if (permission != null) {
-				Bukkit.getOnlinePlayers().stream()
-					.filter(p -> p.hasPermission(permission))
-					.forEach(this.recipients::add);
+				this.permission = permission;
 			}
 			this.lastReload = lastReload;
 		}
@@ -208,13 +201,17 @@ public class StructAutoReload extends Structure {
 		/**
 		 * Returns a new list of the recipients to recieve reload errors.
 		 * Console command sender included.
-		 * 
+		 *
 		 * @return the recipients in a list
 		 */
 		@Unmodifiable
 		public List<CommandSender> getRecipients() {
 			List<CommandSender> senders = Lists.newArrayList(Bukkit.getConsoleSender());
-			senders.addAll(recipients.stream().filter(OfflinePlayer::isOnline).map(OfflinePlayer::getPlayer).toList());
+			if (!this.recipients.isEmpty()) {
+				senders.addAll(this.recipients.stream().filter(OfflinePlayer::isOnline).map(OfflinePlayer::getPlayer).toList());
+			} else if (this.permission != null) {
+				senders.addAll(Bukkit.getOnlinePlayers().stream().filter(player -> player.hasPermission(this.permission)).toList());
+			}
 			return Collections.unmodifiableList(senders); // Unmodifiable to denote that changes won't affect the data.
 		}
 
