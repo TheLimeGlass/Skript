@@ -1632,6 +1632,15 @@ public class BukkitClasses {
 			.since("2.12")
 		);
 
+		if (Skript.classExists("org.bukkit.inventory.MenuType")) {
+			Classes.registerClass(new RegistryClassInfo<>(MenuType.class, Registry.MENU, "menutype", "menu types")
+				.user("menu ?types?")
+				.name("Menu Type")
+				.description("Represents a creatable inventory type menu.")
+				.since("INSERT VERSION")
+				.documentationId("MenuType"));
+		}
+
 	}
 
 	/**

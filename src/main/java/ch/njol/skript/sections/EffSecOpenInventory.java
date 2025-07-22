@@ -54,7 +54,8 @@ public class EffSecOpenInventory extends EffectSection {
 
 	private static enum OpenableInventorySyntax {
 
-		ANVIL("anvil"),
+		ANVIL("anvil", Skript.methodExists(HumanEntity.class, "openAnvil", Location.class, boolean.class),
+				"Opening an anvil inventory requires Paper."),
 		CARTOGRAPHY("cartography [table]", Skript.methodExists(HumanEntity.class, "openCartographyTable", Location.class, boolean.class),
 				"Opening a cartography table inventory requires Paper."),
 		ENCHANTING("enchant(ment|ing) [table]"),
@@ -107,14 +108,14 @@ public class EffSecOpenInventory extends EffectSection {
 		}
 
 		private static String construct() {
-			StringBuilder builder = new StringBuilder("(");
+			StringBuilder builder = new StringBuilder("((");
 			OpenableInventorySyntax[] values = OpenableInventorySyntax.values();
 			for (int i = 0; i < values.length; i++ ) {
 				builder.append(values[i].getFormatted());
 				if (i + 1 < values.length)
 					builder.append("|");
 			}
-			return builder.append("|%-inventory%)").toString();
+			return builder.append(") (view|window|inventory)|%-inventory%)").toString();
 		}
 	}
 
@@ -148,14 +149,14 @@ public class EffSecOpenInventory extends EffectSection {
 		EventValues.registerEventValue(InventorySectionEvent.class, Player[].class, InventorySectionEvent::getPlayers);
 		Skript.registerSection(EffSecOpenInventory.class,
 				"(show|create|open) %inventory/inventorytype% (to|for) %players%",
-				"open [a[n]] " + OpenableInventorySyntax.construct() + " [view|window|inventory] (to|for) %players%",
+				"open [a[n]] " + OpenableInventorySyntax.construct() + " (to|for) %players%",
 
 				"close [the] inventory [view] (of|for) %players%",
 				"close %players%'[s] inventory [view]");
 	}
 
 	private @Nullable OpenableInventorySyntax syntax;
-	private @Nullable Expression<?> object;
+	private @Nullable Expression<?> inventoryObject;
 	private @Nullable Trigger trigger;
 
 	private Expression<Player> players;
@@ -166,9 +167,9 @@ public class EffSecOpenInventory extends EffectSection {
 	public boolean init(Expression<?>[] exprs, int matchedPattern, Kleenean isDelayed, ParseResult parseResult,
 			SectionNode sectionNode, List<TriggerItem> triggerItems) {
 
-		object = exprs.length > 1 ? exprs[0] : null;
+		inventoryObject = exprs.length > 1 ? exprs[0] : null;
+		open = matchedPattern < 2;
 		if (matchedPattern == 1) {
-			open = true;
 			if (!parseResult.tags.isEmpty()) { // %-inventory% was not used
 				syntax = OpenableInventorySyntax.valueOf(parseResult.tags.get(0).toUpperCase(Locale.ENGLISH));
 				if (syntax.getVersion() != null && !Skript.isRunningMinecraft(syntax.getVersion())) {
@@ -188,21 +189,27 @@ public class EffSecOpenInventory extends EffectSection {
 			return false;
 		}
 
-		if (open && hasSection())
-			trigger = loadCode(sectionNode, "open inventory", InventorySectionEvent.class);
+		if (hasSection()) {
+			if (open) {
+				trigger = loadCode(sectionNode, "open inventory", InventorySectionEvent.class);
+				return true;
+			}
+			return false;
+		}
 
 		return true;
 	}
 
 	@Override
 	protected TriggerItem walk(Event event) {
-		if (object != null) {
+		if (inventoryObject != null) {
 			Inventory inventory = null;
-			Object o = object.getSingle(event);
+			Object o = inventoryObject.getSingle(event);
 			if (o instanceof Inventory i) {
 				inventory = i;
 			} else if (o instanceof InventoryType inventoryType && inventoryType.isCreatable()) {
-				inventory = createInventory(inventoryType);
+				if (inventoryType.isCreatable())
+					inventory = Bukkit.createInventory(null, inventoryType);
 			}
 			if (inventory == null)
 				return super.walk(event, false);
@@ -210,11 +217,7 @@ public class EffSecOpenInventory extends EffectSection {
 			Player[] players = this.players.getArray(event);
 			if (players.length > 0 && trigger != null) {
 				InventorySectionEvent inventoryEvent = new InventorySectionEvent(inventory);
-				Object localVars = Variables.copyLocalVariables(event);
-				Variables.setLocalVariables(inventoryEvent, localVars);
-				TriggerItem.walk(trigger, inventoryEvent);
-				Variables.setLocalVariables(event, Variables.copyLocalVariables(inventoryEvent));
-				Variables.removeLocals(inventoryEvent);
+				Variables.withLocalVariables(event, inventoryEvent, () -> TriggerItem.walk(trigger, inventoryEvent));
 			}
 
 			for (Player player : players)
@@ -259,25 +262,11 @@ public class EffSecOpenInventory extends EffectSection {
 
 	@Override
 	public String toString(@Nullable Event event, boolean debug) {
-		if (object != null)
-			return "show " + object.toString(event, debug) + " to " + players.toString(event, debug);
+		if (inventoryObject != null)
+			return "show " + inventoryObject.toString(event, debug) + " to " + players.toString(event, debug);
 		if (open)
 			return "open " + syntax.name().toLowerCase(Locale.ENGLISH) + " to " + players.toString(event, debug);
 		return "close inventory of " + players.toString(event, debug);
-	}
-
-	public static @Nullable Inventory createInventory(InventoryType type) {
-		if (!type.isCreatable())
-			return null;
-		try {
-			return Bukkit.createInventory(null, type);
-		} catch (NullPointerException | IllegalArgumentException e) {
-			// Spigot forgot to label some InventoryType's as non creatable in some versions < 1.19.4
-			// So this throws NullPointerException aswell ontop of the IllegalArgumentException.
-			// See https://hub.spigotmc.org/jira/browse/SPIGOT-7301
-			Skript.error("You can't open a '" + Classes.toString(type) + "' inventory to players. It's not creatable.");
-		}
-		return null;
 	}
 
 }
