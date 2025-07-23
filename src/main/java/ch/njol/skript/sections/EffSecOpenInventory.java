@@ -15,6 +15,7 @@ import ch.njol.skript.config.SectionNode;
 import ch.njol.skript.doc.Description;
 import ch.njol.skript.doc.Examples;
 import ch.njol.skript.doc.Name;
+import ch.njol.skript.doc.RequiredPlugins;
 import ch.njol.skript.doc.Since;
 import ch.njol.skript.lang.EffectSection;
 import ch.njol.skript.lang.Expression;
@@ -50,6 +51,7 @@ import ch.njol.skript.util.Version;
 	"\topen event-inventory to all players"
 })
 @Since("2.0, 2.1.1 (closing), 2.2-Fixes-V10 (anvil), INSERT VERSION (enchanting, cartography, grindstone, loom) & section support")
+@RequiredPlugins("Paper 1.21.4+")
 public class EffSecOpenInventory extends EffectSection {
 
 	private static enum OpenableInventorySyntax {
