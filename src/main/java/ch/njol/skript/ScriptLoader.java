@@ -881,18 +881,17 @@ public class ScriptLoader {
 			.sorted(unloadComparator)
 			.collect(Collectors.toCollection(ArrayList::new));
 
-		// trigger unload event before unloading scripts
-		for (Script script : scripts) {
+		// initial unload stage
+		Consumer<UnloadingStructure> consumer = unloadingStructure -> {
+			Structure structure = unloadingStructure.structure();
+			Script script = unloadingStructure.script();
 			eventRegistry().events(ScriptUnloadEvent.class)
 				.forEach(event -> event.onUnload(parser, script));
 			script.eventRegistry().events(ScriptUnloadEvent.class)
 				.forEach(event -> event.onUnload(parser, script));
-		}
 
-		// initial unload stage
-		Consumer<UnloadingStructure> consumer = unloadingStructure -> {
 			parser.setActive(unloadingStructure.script());
-			unloadingStructure.structure().unload();
+			structure.unload();
 		};
 		Stream<UnloadingStructure> structuresStream = unloadingStructures.stream();
 		if (isParallel()) {
