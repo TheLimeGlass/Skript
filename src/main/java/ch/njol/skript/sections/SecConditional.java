@@ -5,7 +5,7 @@ import ch.njol.skript.Skript;
 import ch.njol.skript.config.Node;
 import ch.njol.skript.config.SectionNode;
 import ch.njol.skript.doc.Description;
-import ch.njol.skript.doc.Examples;
+import ch.njol.skript.doc.Example;
 import ch.njol.skript.doc.Name;
 import ch.njol.skript.doc.Since;
 import ch.njol.skript.lang.*;
@@ -15,12 +15,12 @@ import ch.njol.skript.lang.util.ContextlessEvent;
 import ch.njol.skript.patterns.PatternCompiler;
 import ch.njol.skript.patterns.SkriptPattern;
 import ch.njol.skript.util.Patterns;
-import ch.njol.skript.util.SkriptColor;
 import ch.njol.util.Kleenean;
 import com.google.common.collect.Iterables;
 import org.bukkit.event.Event;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.UnknownNullability;
+import org.skriptlang.skript.bukkit.text.TextComponentParser;
 import org.skriptlang.skript.lang.condition.Conditional;
 import org.skriptlang.skript.lang.condition.Conditional.Operator;
 
@@ -39,20 +39,18 @@ import java.util.List;
 	"else parse if: another special case of 'else if' condition that its code will not be parsed if all previous chained " +
 		"conditionals weren't executed, and its condition is true",
 })
-@Examples({
-	"if player's health is greater than or equal to 4:",
-	"\tsend \"Your health is okay so far but be careful!\"",
-	"",
-	"else if player's health is greater than 2:",
-	"\tsend \"You need to heal ASAP, your health is very low!\"",
-	"",
-	"else: # Less than 2 hearts",
-	"\tsend \"You are about to DIE if you don't heal NOW. You have only %player's health% heart(s)!\"",
-	"",
-	"parse if plugin \"SomePluginName\" is enabled: # parse if %condition%",
-	"\t# This code will only be executed if the condition used is met otherwise Skript will not parse this section therefore will not give any errors/info about this section",
-	""
-})
+@Example("""
+	if player's health is greater than or equal to 4:
+		send "Your health is okay so far but be careful!"
+	else if player's health is greater than 2:
+		send "You need to heal ASAP, your health is very low!"
+	else: # Less than 2 hearts
+		send "You are about to DIE if you don't heal NOW. You have only %player's health% heart(s)!"
+	""")
+@Example("""
+	parse if plugin "SomePluginName" is enabled: # parse if %condition%
+		# This code will only be executed if the condition used is met otherwise Skript will not parse this section therefore will not give any errors/info about this section
+	""")
 @Since("1.0")
 public class SecConditional extends Section {
 
@@ -84,7 +82,8 @@ public class SecConditional extends Section {
 	private boolean parseIfPassed;
 	private boolean multiline;
 
-	private Kleenean hasDelayAfter;
+	private @Nullable Kleenean hasDelayBefore; // available for ConditionalType.IF
+	private @Nullable Kleenean shouldDelayAfter; // whether the code after this conditional chain, at this point, should be delayed
 	private @Nullable ExecutionIntent executionIntent;
 
 	@Override
@@ -112,7 +111,7 @@ public class SecConditional extends Section {
 				 *    set {_uh oh} to true
 				 */
 				SecConditional precedingConditional = getPrecedingConditional(triggerItems, null);
-				if (precedingConditional == null || !precedingConditional.multiline) {
+				if (precedingConditional == null || !precedingConditional.multiline || precedingConditional.type == ConditionalType.THEN) {
 					Skript.error("'then' has to placed just after a multiline 'if' or 'else if' section");
 					return false;
 				}
@@ -124,8 +123,6 @@ public class SecConditional extends Section {
 						Skript.error("'else if' has to be placed just after another 'if' or 'else if' section");
 					} else if (type == ConditionalType.ELSE) {
 						Skript.error("'else' has to be placed just after another 'if' or 'else if' section");
-					} else if (type == ConditionalType.THEN) {
-						Skript.error("'then' has to placed just after a multiline 'if' or 'else if' section");
 					}
 					return false;
 				}
@@ -146,6 +143,17 @@ public class SecConditional extends Section {
 					return false;
 				}
 			}
+			hasDelayBefore = parser.getHasDelayBefore();
+		}
+
+		// conditional branches are independent, so we need to use the delay state from before the conditional chain
+		// IMPORTANT: we assume that conditions cannot cause delays
+		if (!parser.getHasDelayBefore().isTrue()) { // would only be considered delayed if it was delayed before this chain
+			//noinspection ConstantConditions - chain has been verified... there is an IF
+			Kleenean wasDelayedBeforeChain = hasDelayBefore != null ? hasDelayBefore :
+				getPrecedingConditional(triggerItems, ConditionalType.IF).hasDelayBefore;
+			assert wasDelayedBeforeChain != null;
+			parser.setHasDelayBefore(wasDelayedBeforeChain);
 		}
 
 		// if this an "if" or "else if", let's try to parse the conditions right away
@@ -210,9 +218,9 @@ public class SecConditional extends Section {
 				Which will be printed after the debugged section (e.g 'if all')
 			 */
 			if ((Skript.debug() || sectionNode.debug()) && conditionals.size() > 1) {
-				String indentation = getParser().getIndentation() + "    ";
+				String indentation = parser.getIndentation() + "    ";
 				for (Conditional<?> condition : conditionals)
-					Skript.debug(indentation + SkriptColor.replaceColorChar(condition.toString(null, true)));
+					Skript.debug(indentation + TextComponentParser.instance().escape(condition.toString(null, true)));
 			}
 
 			conditional = Conditional.compound(ifAny ? Operator.OR : Operator.AND, conditionals);
@@ -226,9 +234,32 @@ public class SecConditional extends Section {
 			parseIfPassed = true;
 		}
 
-		Kleenean hadDelayBefore = parser.getHasDelayBefore();
-		if (!multiline || type == ConditionalType.THEN)
+		if (!multiline || type == ConditionalType.THEN) {
+			boolean considerDelayUpdate = !parser.getHasDelayBefore().isTrue();
 			loadCode(sectionNode);
+
+			// only need to account for changing the delay if it wasn't already delayed before this chain
+			if (considerDelayUpdate) {
+				Kleenean hasDelayAfter = parser.getHasDelayBefore();
+				Kleenean preceding = getPrecedingShouldDelayAfter(triggerItems);
+				// two cases
+				// 1. if there is no prior result, just use this one
+				// 2. if the preceding overall result is the same as the just parsed section, no change is necessary
+				if (preceding == null || preceding == hasDelayAfter) {
+					shouldDelayAfter = hasDelayAfter;
+				} else { // otherwise, we cannot be sure whether a delay will occur
+					shouldDelayAfter = Kleenean.UNKNOWN;
+				}
+				// set our determined delay state
+				if (shouldDelayAfter.isTrue()) {
+					// if we should delay, but there is no else, it is not guaranteed that any branches will run
+					// thus, the delay state is not TRUE but rather UNKNOWN
+					parser.setHasDelayBefore(type == ConditionalType.ELSE ? Kleenean.TRUE : Kleenean.UNKNOWN);
+				} else {
+					parser.setHasDelayBefore(shouldDelayAfter);
+				}
+			}
+		}
 
 		// Get the execution intent of the entire conditional chain.
 		if (type == ConditionalType.ELSE) {
@@ -253,35 +284,6 @@ public class SecConditional extends Section {
 				//  then set the chain's intent to the trigger's
 				if (executionIntent == null || triggerIntent.compareTo(executionIntent) < 0)
 					executionIntent = triggerIntent;
-			}
-		}
-
-		hasDelayAfter = parser.getHasDelayBefore();
-
-		// If the code definitely has a delay before this section, or if the section did not alter the delayed Kleenean,
-		//  there's no need to change the Kleenean.
-		if (hadDelayBefore.isTrue() || hadDelayBefore.equals(hasDelayAfter))
-			return true;
-
-		if (type == ConditionalType.ELSE) {
-			SecConditional precedingIf = getPrecedingConditional(triggerItems, ConditionalType.IF);
-			assert precedingIf != null; // at this point, we've validated the section so this can't be null
-			// In an else section, ...
-			if (hasDelayAfter.isTrue()
-					&& precedingIf.hasDelayAfter.isTrue()
-					&& getElseIfs(triggerItems).stream().map(SecConditional::getHasDelayAfter).allMatch(Kleenean::isTrue)) {
-				// ... if the if section, all else-if sections and the else section have definite delays,
-				//  mark delayed as TRUE.
-				parser.setHasDelayBefore(Kleenean.TRUE);
-			} else {
-				// ... otherwise mark delayed as UNKNOWN.
-				parser.setHasDelayBefore(Kleenean.UNKNOWN);
-			}
-		} else {
-			if (!hasDelayAfter.isFalse()) {
-				// If an if section or else-if section has some delay (definite or possible) in it,
-				//  set the delayed Kleenean to UNKNOWN.
-				parser.setHasDelayBefore(Kleenean.UNKNOWN);
 			}
 		}
 
@@ -349,10 +351,6 @@ public class SecConditional extends Section {
 		};
 	}
 
-	private Kleenean getHasDelayAfter() {
-		return hasDelayAfter;
-	}
-
 	/**
 	 * Gets the closest conditional section in the list of trigger items
 	 * @param triggerItems the list of items to search for the closest conditional section in
@@ -386,26 +384,30 @@ public class SecConditional extends Section {
 			TriggerItem triggerItem = triggerItems.get(i);
 			if (!(triggerItem instanceof SecConditional conditional))
 				break;
-			if (conditional.type == ConditionalType.ELSE)
-				// if the conditional is an else, break because it belongs to a different condition and ends
-				// this one
-				break;
 			conditionals.add(conditional);
+			if (conditional.type == ConditionalType.IF)
+				// if the conditional is an if, break because it is the root of our conditional
+				break;
 		}
 		return conditionals;
 	}
 
-	private static List<SecConditional> getElseIfs(List<TriggerItem> triggerItems) {
-		List<SecConditional> list = new ArrayList<>();
+	private @Nullable Kleenean getPrecedingShouldDelayAfter(List<TriggerItem> triggerItems) {
+		if (this.type == ConditionalType.IF)
+			// this is the head, meaning there is no preceding conditional
+			return null;
+		// loop through the triggerItems in reverse order so that we find the most recent items first
 		for (int i = triggerItems.size() - 1; i >= 0; i--) {
 			TriggerItem triggerItem = triggerItems.get(i);
-			if (triggerItem instanceof SecConditional precedingSecConditional && precedingSecConditional.type == ConditionalType.ELSE_IF) {
-				list.add(precedingSecConditional);
-			} else {
+			if (!(triggerItem instanceof SecConditional precedingSecConditional))
 				break;
-			}
+			if (precedingSecConditional.shouldDelayAfter != null)
+				return precedingSecConditional.shouldDelayAfter;
+			if (precedingSecConditional.type == ConditionalType.IF)
+				// this is the head of the conditional, meaning the search failed
+				break;
 		}
-		return list;
+		return null;
 	}
 
 	private boolean checkConditions(Event event) {
