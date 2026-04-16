@@ -1,6 +1,5 @@
 package ch.njol.skript;
 
-import ScriptLoader.ScriptInfo;
 import ch.njol.skript.config.Config;
 import ch.njol.skript.config.Node;
 import ch.njol.skript.config.SectionNode;
