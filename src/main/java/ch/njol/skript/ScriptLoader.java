@@ -1,15 +1,12 @@
 package ch.njol.skript;
 
+import ScriptLoader.ScriptInfo;
 import ch.njol.skript.config.Config;
 import ch.njol.skript.config.Node;
 import ch.njol.skript.config.SectionNode;
 import ch.njol.skript.config.SimpleNode;
 import ch.njol.skript.events.bukkit.PreScriptLoadEvent;
-import ch.njol.skript.lang.ExecutionIntent;
-import ch.njol.skript.lang.Section;
-import ch.njol.skript.lang.SkriptParser;
-import ch.njol.skript.lang.Statement;
-import ch.njol.skript.lang.TriggerItem;
+import ch.njol.skript.lang.*;
 import ch.njol.skript.lang.parser.ParserInstance;
 import ch.njol.skript.log.CountingLogHandler;
 import ch.njol.skript.log.LogEntry;
@@ -18,17 +15,17 @@ import ch.njol.skript.log.SkriptLogger;
 import ch.njol.skript.structures.StructOptions.OptionsData;
 import ch.njol.skript.test.runner.TestMode;
 import ch.njol.skript.util.ExceptionUtils;
-import ch.njol.skript.util.SkriptColor;
 import ch.njol.skript.util.Task;
 import ch.njol.skript.util.Timespan;
 import ch.njol.skript.variables.HintManager;
-import ch.njol.util.NonNullPair;
 import ch.njol.util.OpenCloseable;
 import ch.njol.util.StringUtils;
 import org.bukkit.Bukkit;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.UnknownNullability;
+import org.jspecify.annotations.NonNull;
+import org.skriptlang.skript.bukkit.text.TextComponentParser;
 import org.skriptlang.skript.lang.script.Script;
 import org.skriptlang.skript.lang.script.ScriptWarning;
 import org.skriptlang.skript.lang.structure.Structure;
@@ -43,6 +40,7 @@ import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -339,7 +337,7 @@ public class ScriptLoader {
 			private final AtomicInteger threadId = new AtomicInteger(0);
 
 			@Override
-			public Thread newThread(Runnable runnable) {
+			public Thread newThread(@NonNull Runnable runnable) {
 				Thread thread = new Thread(asyncLoaderThreadGroup, runnable, "Skript async loaders thread " + threadId.incrementAndGet());
 				thread.setDaemon(true);
 				return thread;
@@ -528,18 +526,19 @@ public class ScriptLoader {
 
 					// build sorted list
 					// this nest of pairs is terrible, but we need to keep the reference to the modifiable structures list
-					List<NonNullPair<LoadingScriptInfo, Structure>> pairs = scripts.stream()
+					record LoadingStructure (LoadingScriptInfo loadingScriptInfo, Structure structure) {}
+					List<LoadingStructure> loadingStructures = scripts.stream()
 							.flatMap(info -> { // Flatten each entry down to a stream of Script-Structure pairs
 								return info.structures.stream()
-										.map(structure -> new NonNullPair<>(info, structure));
+										.map(structure -> new LoadingStructure(info, structure));
 							})
-							.sorted(Comparator.comparing(pair -> pair.getSecond().getPriority()))
+							.sorted(Comparator.comparing(pair -> pair.structure().getPriority()))
 							.collect(Collectors.toCollection(ArrayList::new));
 
 					// pre-loading
-					pairs.removeIf(pair -> {
-						LoadingScriptInfo loadingInfo = pair.getFirst();
-						Structure structure = pair.getSecond();
+					loadingStructures.removeIf(loadingStructure -> {
+						LoadingScriptInfo loadingInfo = loadingStructure.loadingScriptInfo();
+						Structure structure = loadingStructure.structure();
 
 						parser.setActive(loadingInfo.script);
 						parser.setCurrentStructure(structure);
@@ -566,9 +565,9 @@ public class ScriptLoader {
 					// Until these reworks happen, limiting main loading to asynchronous (not parallel) is the only choice we have.
 
 					// loading
-					pairs.removeIf(pair -> {
-						LoadingScriptInfo loadingInfo = pair.getFirst();
-						Structure structure = pair.getSecond();
+					loadingStructures.removeIf(loadingStructure -> {
+						LoadingScriptInfo loadingInfo = loadingStructure.loadingScriptInfo();
+						Structure structure = loadingStructure.structure();
 
 						parser.setActive(loadingInfo.script);
 						parser.setCurrentStructure(structure);
@@ -590,9 +589,9 @@ public class ScriptLoader {
 					parser.setInactive();
 
 					// post-loading
-					pairs.removeIf(pair -> {
-						LoadingScriptInfo loadingInfo = pair.getFirst();
-						Structure structure = pair.getSecond();
+					loadingStructures.removeIf(loadingStructure -> {
+						LoadingScriptInfo loadingInfo = loadingStructure.loadingScriptInfo();
+						Structure structure = loadingStructure.structure();
 
 						parser.setActive(loadingInfo.script);
 						parser.setCurrentStructure(structure);
@@ -870,38 +869,56 @@ public class ScriptLoader {
 		}
 
 		ParserInstance parser = getParser();
+		record UnloadingStructure (Script script, Structure structure) {}
+		Comparator<UnloadingStructure> unloadComparator = Comparator.comparing(unloadingStructure -> unloadingStructure.structure().getPriority());
+		unloadComparator = unloadComparator.reversed();
+
+		List<UnloadingStructure> unloadingStructures = scripts.stream()
+			.flatMap(script -> { // Flatten each entry down to a stream of Script-Structure pairs
+				return script.getStructures().stream()
+					.map(structure -> new UnloadingStructure(script, structure));
+			})
+			.sorted(unloadComparator)
+			.collect(Collectors.toCollection(ArrayList::new));
+
+		// trigger unload event before unloading scripts
+		for (Script script : scripts) {
+			eventRegistry().events(ScriptUnloadEvent.class)
+				.forEach(event -> event.onUnload(parser, script));
+			script.eventRegistry().events(ScriptUnloadEvent.class)
+				.forEach(event -> event.onUnload(parser, script));
+		}
 
 		// initial unload stage
-		for (Script script : scripts) {
-			parser.setActive(script);
-
-			// trigger unload event before beginning
-			eventRegistry().events(ScriptUnloadEvent.class)
-					.forEach(event -> event.onUnload(parser, script));
-			script.eventRegistry().events(ScriptUnloadEvent.class)
-					.forEach(event -> event.onUnload(parser, script));
-
-			Stream<Structure> structuresStream = script.getStructures().stream();
-			if (isParallel())
-				structuresStream = structuresStream.parallel();
-
-			structuresStream.forEachOrdered(Structure::unload);
+		Consumer<UnloadingStructure> consumer = unloadingStructure -> {
+			parser.setActive(unloadingStructure.script());
+			unloadingStructure.structure().unload();
+		};
+		Stream<UnloadingStructure> structuresStream = unloadingStructures.stream();
+		if (isParallel()) {
+			getExecutor().execute(() -> structuresStream.parallel().forEach(consumer));
+		} else {
+			structuresStream.forEach(consumer);
 		}
 
 		parser.setInactive();
 
-		// finish unloading + data collection
+		// finish unloading of structures + data collection
 		ScriptInfo info = new ScriptInfo();
-		for (Script script : scripts) {
-			List<Structure> structures = script.getStructures();
+		for (UnloadingStructure unloadingStructure : unloadingStructures) {
+			Script script = unloadingStructure.script();
+			Structure structure = unloadingStructure.structure();
 
-			info.files++;
-			info.structures += structures.size();
+			info.structures++;
 
 			parser.setActive(script);
-			for (Structure structure : structures)
-				structure.postUnload();
-			parser.setInactive();
+			structure.postUnload();
+		}
+		parser.setInactive();
+
+		// finish unloading of scripts + data collection
+		for (Script script : scripts) {
+			info.files++;
 
 			script.clearData();
 			script.invalidate();
@@ -919,7 +936,7 @@ public class ScriptLoader {
 	 * @param script The script to unload.
 	 * @return Statistics for the unloaded script.
 	 */
-	public static ScriptInfo unloadScript(Script script) {
+	public static ScriptLoader.ScriptInfo unloadScript(Script script) {
 		return unloadScripts(Collections.singleton(script));
 	}
 
@@ -951,7 +968,7 @@ public class ScriptLoader {
 			//noinspection ConstantConditions - getFile should never return null
 			Config config = loadStructure(script.getConfig().getFile());
 			if (config == null)
-				return CompletableFuture.completedFuture(new ScriptInfo());
+				return CompletableFuture.completedFuture(new ScriptLoader.ScriptInfo());
 			configs.add(config);
 		}
 
@@ -1025,7 +1042,7 @@ public class ScriptLoader {
 				}
 
 				if (Skript.debug() || subNode.debug())
-					Skript.debug(SkriptColor.replaceColorChar(parser.getIndentation() + item.toString(null, true)));
+					Skript.debug(TextComponentParser.instance().escape(parser.getIndentation() + item.toString(null, true)));
 
 				items.add(item);
 			} else if (subNode instanceof SectionNode subSection) {
@@ -1053,15 +1070,34 @@ public class ScriptLoader {
 
 					if (item != null)
 						break find_section;
-					Collection<LogEntry> errors = handler.getErrors();
 
 					// restore the failure log if:
 					// 1. there are no errors from the statement parse
 					// 2. the error message is the default one from the statement parse
 					// 3. the backup log contains a message about the section being claimed
-					if (errors.isEmpty()
-						|| errors.iterator().next().getMessage().contains("Can't understand this condition/effect:")
-						|| backup.getErrors().iterator().next().getMessage().contains("tried to claim the current section, but it was already claimed by")
+					// 4. the backup log contains an explicit error and the current error message is about no syntax managing the section
+					if (!handler.hasErrors()) {
+						handler.restore(backup);
+						continue;
+					}
+
+					LogEntry errorEntry = handler.getFirstError();
+					assert errorEntry != null;
+					String error = errorEntry.getMessage();
+
+					if (error.contains("Can't understand this condition/effect:")) {
+						handler.restore(backup);
+						continue;
+					}
+
+					LogEntry backupErrorEntry = backup.getFirstError();
+					if (backupErrorEntry == null)
+						continue;
+					String backupError = backupErrorEntry.getMessage();
+
+					if (backupError.contains("tried to claim the current section, but it was already claimed by")
+						|| (!backupError.contains("Can't understand this section: ")
+						&& error.contains("is a valid statement but cannot function as a section (:) because there is no syntax in the line to manage it."))
 					) {
 						handler.restore(backup);
 					}
@@ -1078,7 +1114,7 @@ public class ScriptLoader {
 					handler.clear();
 					handler.printLog();
 					if (item != null && (Skript.debug() || subNode.debug()))
-						Skript.debug(SkriptColor.replaceColorChar(parser.getIndentation() + item.toString(null, true)));
+						Skript.debug(TextComponentParser.instance().escape(parser.getIndentation() + item.toString(null, true)));
 					afterParse.printLog();
 				}
 
