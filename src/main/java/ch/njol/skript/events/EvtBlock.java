@@ -87,14 +87,15 @@ public class EvtBlock extends SkriptEvent {
 						"\tbroadcast block hardness of event-block"
 				)
 				.since("1.0, INSERT VERSION (type expression)");
-		Skript.registerEvent("Block Trample", EvtBlock.class, PlayerInteractEvent.class, "crop:crop trampl(ing|e) [[of] %-itemtypes/blockdatas%]")
-				.description("Called when a player tramples on a block like wheat breaking from jumping on it.")
+		Skript.registerEvent("Block Trample", EvtBlock.class, PlayerInteractEvent.class, "(crop:crop|block) trampl(ing|e) [[of] %-itemtypes/blockdatas%]")
+				.description("Called when a player tramples on a block like wheat breaking or redstone ore from jumping on it.")
 				.examples("on block trampling of wheat:", "\tcancel event:")
 				.since("INSERT VERSION");
 	}
 
 	private @Nullable Literal<Object> types;
 	private boolean mine = false;
+	private boolean crop = false;
 
 	@Override
 	public boolean init(Literal<?>[] args, int matchedPattern, ParseResult parseResult) {
@@ -102,7 +103,7 @@ public class EvtBlock extends SkriptEvent {
 		mine = parseResult.mark == 1;
 		if (types != null && parseResult.hasTag("crops")) {
 			var tag = MaterialSetTag.CROPS;
-			var crop = Arrays.stream(types.getAll())
+			crop = Arrays.stream(types.getAll())
 				.filter(ItemType.class::isInstance)
 				.anyMatch(itemType -> tag.isTagged(((ItemType) itemType).getMaterial()));
 			if (!crop) {
@@ -128,12 +129,11 @@ public class EvtBlock extends SkriptEvent {
 		switch (event) {
 			case PlayerInteractEvent playerInteractEvent -> {
 				var block = playerInteractEvent.getClickedBlock();
-				if (playerInteractEvent.getAction() != Action.PHYSICAL || block == null || block.getType() != Material.FARMLAND)
+				if (playerInteractEvent.getAction() != Action.PHYSICAL || block == null || crop && block.getType() != Material.FARMLAND)
 					return false;
 
 				BlockState newState = block.getRelative(BlockFace.UP).getState();
-				if (!MaterialSetTag.CROPS.isTagged(newState.getType()))
-					// Only do crops, because there is a legacy event already for pressure plates
+				if (crop && !MaterialSetTag.CROPS.isTagged(newState.getType()))
 					return false;
 
 				if (types == null)
